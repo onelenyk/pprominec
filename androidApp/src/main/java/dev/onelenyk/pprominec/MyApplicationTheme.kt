@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.android
+package dev.onelenyk.pprominec
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape

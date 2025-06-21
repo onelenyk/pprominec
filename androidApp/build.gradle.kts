@@ -7,10 +7,10 @@ plugins {
 }
 
 android {
-    namespace = "dev.onelenyk.pprominec.android"
+    namespace = "dev.onelenyk.pprominec"
     compileSdk = 35
     defaultConfig {
-        applicationId = "dev.onelenyk.pprominec.android"
+        applicationId = "dev.onelenyk.pprominec"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

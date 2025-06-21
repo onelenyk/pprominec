@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.android.presentation
+package dev.onelenyk.pprominec.presentation
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.StackNavigator

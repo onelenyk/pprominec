@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.android.bussines
+package dev.onelenyk.pprominec.bussines
 
 data class GeoCoordinate(val lat: Double, val lon: Double)
 

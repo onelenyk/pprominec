@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.android
+package dev.onelenyk.pprominec
 
 import android.app.Application
 import org.koin.android.ext.koin.androidContext
@@ -9,8 +9,6 @@ class PprominecApp : Application() {
         super.onCreate()
         startKoin {
             androidContext(this@PprominecApp)
-            // Add your Koin modules here, e.g.:
-            // modules(appModule)
         }
     }
 }

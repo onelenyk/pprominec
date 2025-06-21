@@ -1,7 +1,7 @@
-package dev.onelenyk.pprominec.android.presentation.components
+package dev.onelenyk.pprominec.presentation.components
 
 import com.arkivanov.decompose.ComponentContext
-import dev.onelenyk.pprominec.android.bussines.GeoCoordinate
+import dev.onelenyk.pprominec.bussines.GeoCoordinate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +25,8 @@ data class MainState(
     val distanceKm: String = "50",
     val latB: String = "50.1802326",
     val lonB: String = "24.4102277",
-    val samples: List<Sample> = MainState.samples
+    val samples: List<Sample> = MainState.samples,
+    val hideSamples: Boolean = false
 ) {
     companion object {
         val samples = listOf(
@@ -149,6 +150,8 @@ interface MainComponent {
     fun onLonBChange(value: String)
 
     fun applySample(sample: Sample)
+
+    fun hideSamples()
 }
 
 class DefaultMainComponent(
@@ -181,6 +184,10 @@ class DefaultMainComponent(
 
     override fun onLonBChange(value: String) {
         _state.value = _state.value.copy(lonB = value)
+    }
+
+    override fun hideSamples() {
+        _state.value = _state.value.copy(hideSamples = !_state.value.hideSamples)
     }
 
     override fun applySample(sample: Sample) {

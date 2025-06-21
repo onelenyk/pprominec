@@ -1,10 +1,10 @@
-package dev.onelenyk.pprominec.android.presentation.`interface`
+package dev.onelenyk.pprominec.presentation.`interface`
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
-import dev.onelenyk.pprominec.android.presentation.components.RootComponent
+import dev.onelenyk.pprominec.presentation.components.RootComponent
 
 
 @Composable

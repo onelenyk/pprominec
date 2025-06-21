@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.android.bussines
+package dev.onelenyk.pprominec.bussines
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

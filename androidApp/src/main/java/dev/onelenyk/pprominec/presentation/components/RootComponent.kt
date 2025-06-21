@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.android.presentation.components
+package dev.onelenyk.pprominec.presentation.components
 
 
 import com.arkivanov.decompose.ComponentContext
@@ -6,7 +6,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
-import dev.onelenyk.pprominec.android.presentation.coroutineScope
+import dev.onelenyk.pprominec.presentation.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 

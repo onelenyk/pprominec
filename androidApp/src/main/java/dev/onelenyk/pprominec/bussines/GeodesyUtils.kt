@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.android.bussines
+package dev.onelenyk.pprominec.bussines
 
 import net.sf.geographiclib.Geodesic
 import net.sf.geographiclib.GeodesicData

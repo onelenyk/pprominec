@@ -1,8 +1,10 @@
-package dev.onelenyk.pprominec.android.presentation.`interface`
+package dev.onelenyk.pprominec.presentation.`interface`
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -41,16 +43,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import dev.onelenyk.pprominec.android.bussines.AzimuthCalculatorAPI
-import dev.onelenyk.pprominec.android.bussines.AzimuthInputNormalizer
-import dev.onelenyk.pprominec.android.presentation.components.MainComponent
+import dev.onelenyk.pprominec.bussines.AzimuthCalculatorAPI
+import dev.onelenyk.pprominec.bussines.AzimuthInputNormalizer
+import dev.onelenyk.pprominec.presentation.components.MainComponent
 
 @Composable
 fun MainScreen(component: MainComponent) {
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         InputAndResultScreen(
-            modifier = Modifier.padding(innerPadding),
-            component = component
+            modifier = Modifier.padding(innerPadding), component = component
         )
     }
 }
@@ -58,8 +59,7 @@ fun MainScreen(component: MainComponent) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InputAndResultScreen(
-    modifier: Modifier = Modifier,
-    component: MainComponent
+    modifier: Modifier = Modifier, component: MainComponent
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedSampleText by remember { mutableStateOf("Оберіть зразок...") }
@@ -102,54 +102,53 @@ fun InputAndResultScreen(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 8.dp)
+                .combinedClickable(onDoubleClick = {
+                    component.hideSamples()
+                }, onClick = {})
         )
 
         // Add Sample Selector Card
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFEDE7F6))
-        ) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+        AnimatedVisibility(visible = !state.hideSamples) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFEDE7F6))
             ) {
-                Text(
-                    "Оберіть зразок розрахунку",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFF4527A0)
-                )
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(
-                        value = selectedSampleText,
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF7E57C2),
-                            unfocusedBorderColor = Color(0xFF7E57C2)
-                        )
+                    Text(
+                        "Оберіть зразок розрахунку",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF4527A0)
                     )
-                    ExposedDropdownMenu(
+                    ExposedDropdownMenuBox(
                         expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        onExpandedChange = { expanded = it },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        state.samples.forEach { sample ->
-                            DropdownMenuItem(
-                                text = { Text(sample.name) },
-                                onClick = {
+                        OutlinedTextField(
+                            value = selectedSampleText,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF7E57C2),
+                                unfocusedBorderColor = Color(0xFF7E57C2)
+                            )
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded, onDismissRequest = { expanded = false }) {
+                            state.samples.forEach { sample ->
+                                DropdownMenuItem(text = { Text(sample.name) }, onClick = {
                                     selectedSampleText = sample.name
                                     component.applySample(sample)
                                     expanded = false
-                                }
-                            )
+                                })
+                            }
                         }
                     }
                 }
@@ -162,9 +161,7 @@ fun InputAndResultScreen(
             colors = CardDefaults.cardColors(containerColor = cardAColor)
         ) {
             Column(
-                Modifier
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     "Точка A (позиція спостерігача)",
@@ -177,13 +174,11 @@ fun InputAndResultScreen(
                     label = { Text("Широта A", color = textPrimaryDark) },
                     supportingText = {
                         Text(
-                            "Введіть широту точки A у форматі 50.2040236",
-                            color = textSecondaryDark
+                            "Введіть широту точки A у форматі 50.2040236", color = textSecondaryDark
                         )
                     },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
+                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Next
                     ),
                     singleLine = true,
                     leadingIcon = { Text("🧭") },
@@ -206,8 +201,7 @@ fun InputAndResultScreen(
                         )
                     },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
+                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Next
                     ),
                     singleLine = true,
                     leadingIcon = { Text("🗺️") },
@@ -220,8 +214,7 @@ fun InputAndResultScreen(
                     )
                 )
                 Divider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    thickness = 1.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                 )
                 OutlinedTextField(
                     value = state.azimuthFromA,
@@ -229,13 +222,11 @@ fun InputAndResultScreen(
                     label = { Text("Азимут з A", color = textPrimaryDark) },
                     supportingText = {
                         Text(
-                            "Введіть азимут у градусах (від 0 до 360)",
-                            color = textSecondaryDark
+                            "Введіть азимут у градусах (від 0 до 360)", color = textSecondaryDark
                         )
                     },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
+                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Next
                     ),
                     singleLine = true,
                     leadingIcon = { Text("↗️") },
@@ -253,13 +244,11 @@ fun InputAndResultScreen(
                     label = { Text("Відстань до цілі (км)", color = textPrimaryDark) },
                     supportingText = {
                         Text(
-                            "Введіть відстань у кілометрах",
-                            color = textSecondaryDark
+                            "Введіть відстань у кілометрах", color = textSecondaryDark
                         )
                     },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
+                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Next
                     ),
                     singleLine = true,
                     leadingIcon = { Text("📏") },
@@ -279,9 +268,7 @@ fun InputAndResultScreen(
             colors = CardDefaults.cardColors(containerColor = cardBColor)
         ) {
             Column(
-                Modifier
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     "Точка B (інша позиція)",
@@ -294,13 +281,11 @@ fun InputAndResultScreen(
                     label = { Text("Широта B", color = textPrimaryDark) },
                     supportingText = {
                         Text(
-                            "Введіть широту точки B у форматі 50.1802326",
-                            color = textSecondaryDark
+                            "Введіть широту точки B у форматі 50.1802326", color = textSecondaryDark
                         )
                     },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
+                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Next
                     ),
                     singleLine = true,
                     leadingIcon = { Text("🧭") },
@@ -323,8 +308,7 @@ fun InputAndResultScreen(
                         )
                     },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done
+                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Done
                     ),
                     singleLine = true,
                     leadingIcon = { Text("🗺️") },
@@ -344,9 +328,7 @@ fun InputAndResultScreen(
             colors = CardDefaults.cardColors(containerColor = cardResultColor)
         ) {
             Column(
-                Modifier
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     "Результат розрахунку",
@@ -368,10 +350,7 @@ fun InputAndResultScreen(
 
 @Composable
 fun ResultScreen(
-    latTarget: Double,
-    lonTarget: Double,
-    azimuthFromB: Double,
-    modifier: Modifier = Modifier
+    latTarget: Double, lonTarget: Double, azimuthFromB: Double, modifier: Modifier = Modifier
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -392,8 +371,7 @@ fun ResultScreen(
                     clipboardManager.setText(AnnotatedString(coordsText))
                     Toast.makeText(context, "Координати скопійовано", Toast.LENGTH_SHORT).show()
                 }
-                .padding(12.dp)
-        ) {
+                .padding(12.dp)) {
             Text(
                 text = "Широта: %.6f".format(latTarget),
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
@@ -424,8 +402,7 @@ fun ResultScreen(
                     clipboardManager.setText(AnnotatedString(azimuthText))
                     Toast.makeText(context, "Азимут скопійовано", Toast.LENGTH_SHORT).show()
                 }
-                .padding(12.dp)
-        ) {
+                .padding(12.dp)) {
             Text(
                 text = azimuthText,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
