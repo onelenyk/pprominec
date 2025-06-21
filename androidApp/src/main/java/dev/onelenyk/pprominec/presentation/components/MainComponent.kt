@@ -26,7 +26,7 @@ data class MainState(
     val latB: String = "50.1802326",
     val lonB: String = "24.4102277",
     val samples: List<Sample> = MainState.samples,
-    val hideSamples: Boolean = false
+    val hideSamples: Boolean = true
 ) {
     companion object {
         val samples = listOf(
