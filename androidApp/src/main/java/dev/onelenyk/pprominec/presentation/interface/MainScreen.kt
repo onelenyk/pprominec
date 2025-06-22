@@ -2,6 +2,7 @@ package dev.onelenyk.pprominec.presentation.`interface`
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -56,7 +57,7 @@ fun MainScreen(component: MainComponent) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun InputAndResultScreen(
     modifier: Modifier = Modifier, component: MainComponent

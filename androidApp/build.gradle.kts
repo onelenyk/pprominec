@@ -24,17 +24,32 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        create("release") {
+            storeFile = file("release_keystore.jks")
+            storePassword = "20101998"
+            keyAlias = "key0"
+            keyPassword = "20101998"
+        }
+    }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+
+    buildTypes.all {
+        setProperty("archivesBaseName", "pprominec-v${defaultConfig.versionName}")
     }
 }
 
