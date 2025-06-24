@@ -9,6 +9,7 @@ class PprominecApp : Application() {
         super.onCreate()
         startKoin {
             androidContext(this@PprominecApp)
+            modules(appModule)
         }
     }
 }

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Промінчик</string>
-
+    <string name="app_name">Промінець</string>
+    <string name="main_tab">Головна</string>
+    <string name="settings_tab">Налаштування</string>
+    <string name="calc_tab">Калькулятор</string>
 </resources>

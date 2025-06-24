@@ -82,6 +82,20 @@ dependencies {
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockito.core)
+
+    implementation("org.mapsforge:mapsforge-core:0.25.0")
+    implementation("org.mapsforge:mapsforge-map:0.25.0")
+    implementation("org.mapsforge:mapsforge-map-android:0.25.0")
+
+    implementation("androidx.datastore:datastore-preferences:1.1.7")
+    implementation("androidx.datastore:datastore-core:1.1.7")
+
+    implementation("io.insert-koin:koin-android:3.5.3")
+    implementation("io.insert-koin:koin-androidx-compose:3.5.3")
+
+    implementation("com.guolindev.permissionx:permissionx:1.8.1")
+
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
 }
 
 tasks.withType<Test> {

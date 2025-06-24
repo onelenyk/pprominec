@@ -1,7 +1,7 @@
 package dev.onelenyk.pprominec
 
 import dev.onelenyk.pprominec.bussines.AzimuthCalculatorAPI
-import dev.onelenyk.pprominec.presentation.components.MainState.Companion.samples
+import dev.onelenyk.pprominec.presentation.components.main.MainState.Companion.samples
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 

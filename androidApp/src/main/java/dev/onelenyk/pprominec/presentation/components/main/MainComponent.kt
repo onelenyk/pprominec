@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.presentation.components
+package dev.onelenyk.pprominec.presentation.components.main
 
 import com.arkivanov.decompose.ComponentContext
 import dev.onelenyk.pprominec.bussines.GeoCoordinate
@@ -200,5 +200,4 @@ class DefaultMainComponent(
             lonB = sample.pointB.lon.toString()
         )
     }
-}
-
+} 
