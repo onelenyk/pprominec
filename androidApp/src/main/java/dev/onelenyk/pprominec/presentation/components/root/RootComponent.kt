@@ -5,12 +5,15 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.value.Value
 import dev.onelenyk.pprominec.presentation.components.bottom_nav.BottomNavComponent
 import dev.onelenyk.pprominec.presentation.components.bottom_nav.DefaultBottomNavComponent
 import dev.onelenyk.pprominec.presentation.components.permissions.DefaultPermissionsComponent
 import dev.onelenyk.pprominec.presentation.components.permissions.PermissionsComponent
+import dev.onelenyk.pprominec.presentation.components.permissions.PermissionsManager
 import kotlinx.serialization.Serializable
+import org.koin.java.KoinJavaComponent.getKoin
 
 interface RootComponent {
     val childStack: Value<ChildStack<*, Child>>
@@ -23,10 +26,11 @@ interface RootComponent {
 }
 
 class DefaultRootComponent(
-    componentContext: ComponentContext,
+    componentContext: ComponentContext
 ) : RootComponent, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
+    private val permissionsManager: PermissionsManager = getKoin().get()
 
     override val childStack: Value<ChildStack<*, RootComponent.Child>> =
         childStack(
@@ -41,11 +45,15 @@ class DefaultRootComponent(
         when (config) {
             is Config.BottomNav -> RootComponent.Child.BottomNav(
                 DefaultBottomNavComponent(
-                    componentContext
+                    componentContext,
+                    onPermissionsClicked = { showPermissionsScreen() }
                 )
             )
+
             is Config.Permissions -> RootComponent.Child.Permissions(
-                DefaultPermissionsComponent(componentContext)
+                DefaultPermissionsComponent(componentContext, permissionsManager, onBack = {
+                    navigation.pop()
+                })
             )
         }
 
@@ -57,6 +65,7 @@ class DefaultRootComponent(
     private sealed class Config {
         @Serializable
         data object BottomNav : Config()
+
         @Serializable
         data object Permissions : Config()
     }

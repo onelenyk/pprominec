@@ -28,6 +28,7 @@ interface BottomNavComponent {
     fun onMainTabClicked()
     fun onSettingsTabClicked()
     fun onMapTabClicked()
+    fun onPermissionsClicked()
 
     sealed class Child {
         data class Main(val component: MainComponent) : Child()
@@ -38,6 +39,7 @@ interface BottomNavComponent {
 
 class DefaultBottomNavComponent(
     componentContext: ComponentContext,
+    private val onPermissionsClicked: () -> Unit
 ) : BottomNavComponent, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
@@ -54,7 +56,7 @@ class DefaultBottomNavComponent(
     private fun child(config: Config, componentContext: ComponentContext): BottomNavComponent.Child =
         when (config) {
             is Config.Main -> BottomNavComponent.Child.Main(DefaultMainComponent(componentContext))
-            is Config.Settings -> BottomNavComponent.Child.Settings(DefaultSettingsComponent(componentContext))
+            is Config.Settings -> BottomNavComponent.Child.Settings(DefaultSettingsComponent(componentContext, onPermissionsClicked))
             is Config.Map -> {
                 val appContext = getKoin().get<Context>()
                 val repository = getKoin().get<MapFilesRepository>()
@@ -83,6 +85,10 @@ class DefaultBottomNavComponent(
 
     override fun onMapTabClicked() {
         navigation.bringToFront(Config.Map)
+    }
+
+    override fun onPermissionsClicked() {
+        onPermissionsClicked()
     }
 
     @Serializable

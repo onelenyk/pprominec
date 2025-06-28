@@ -14,12 +14,42 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import dev.onelenyk.pprominec.presentation.components.main.MapComponent
+import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.modules.MBTilesFileArchive
+import org.osmdroid.tileprovider.modules.OfflineTileProvider
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.io.File
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(component: MapComponent) {
+    AppScreen(
+        toolbar = { AppToolbar(title = "Map") },
+        content = {
+            MapContent(
+                modifier = Modifier,
+                component = component
+            )
+        }
+    )
+}
+
+@Composable
+fun MapContent(
+    modifier: Modifier = Modifier,
+    component: MapComponent
+) {
     val state by component.state.collectAsState()
 
     val mapFilePicker =
@@ -29,12 +59,13 @@ fun MapScreen(component: MapComponent) {
             }
         }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
             ) {
                 Button(onClick = {
                     mapFilePicker.launch(
@@ -44,9 +75,11 @@ fun MapScreen(component: MapComponent) {
                             "*/*"
                         )
                     )
-                }, modifier = Modifier.padding(16.dp)) {
+                }, modifier = Modifier.fillMaxWidth()) {
                     Text("Вибрати .map файл")
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 MapFilesCard(
                     mapUris = state.mapUris,
@@ -54,6 +87,8 @@ fun MapScreen(component: MapComponent) {
                     onSelect = { component.onSelectMapUri(it) },
                     onDelete = { component.onRemoveMapUri(it) }
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 CacheFilesCard(
                     cachedFiles = state.storedFiles,
@@ -75,6 +110,7 @@ fun MapScreen(component: MapComponent) {
                 } else {
                     Text("Оберіть .map файл для відображення карти", color = Color.DarkGray)
                 }
+                SimpleMap()
             }
         }
 
@@ -100,7 +136,7 @@ fun MapFilesCard(
     onDelete: (String) -> Unit
 ) {
     Card(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -141,7 +177,7 @@ fun CacheFilesCard(
     onClear: () -> Unit
 ) {
     Card(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -165,6 +201,52 @@ fun CacheFilesCard(
                     Text("Видалити всі")
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+fun SimpleMap() {
+    val context = LocalContext.current
+    var mapView by remember { mutableStateOf<MapView?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AndroidView(
+            factory = { ctx ->
+                MapView(ctx).apply {
+                    setTileSource(TileSourceFactory.MAPNIK)
+                    setMultiTouchControls(true)
+                    controller.setZoom(10.0)
+                    controller.setCenter(GeoPoint(40.7128, -74.0060)) // New York
+
+                    // Add location overlay
+                    val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), this)
+                    locationOverlay.enableMyLocation()
+                    overlays.add(locationOverlay)
+
+                    mapView = this
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Locate button
+        FloatingActionButton(
+            onClick = {
+                mapView?.let { map ->
+                    val locationOverlay = map.overlays.find { it is MyLocationNewOverlay } as? MyLocationNewOverlay
+                    locationOverlay?.myLocation?.let { location ->
+                        map.controller.animateTo(GeoPoint(location.latitude, location.longitude))
+                        map.controller.setZoom(16.0)
+                    }
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Text("📍")
         }
     }
 }

@@ -6,10 +6,17 @@ import androidx.activity.compose.setContent
 import dev.onelenyk.pprominec.presentation.ui.RootContainer
 import com.arkivanov.decompose.defaultComponentContext
 import dev.onelenyk.pprominec.presentation.components.root.DefaultRootComponent
+import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize osmdroid configuration
+        Configuration.getInstance().load(this, getPreferences(MODE_PRIVATE))
+        Configuration.getInstance().userAgentValue = packageName
+
         setContent {
             MyApplicationTheme {
                 RootContainer(

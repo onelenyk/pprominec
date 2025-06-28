@@ -4,4 +4,19 @@
     <string name="main_tab">Головна</string>
     <string name="settings_tab">Налаштування</string>
     <string name="calc_tab">Калькулятор</string>
+    <string name="permissions_location_alert_title">Location Permission Required</string>
+    <string name="permissions_location_alert_message">This app requires location access to provide accurate services.</string>
+    <string name="permissions_notifications_alert_title">Notifications Permission Required</string>
+    <string name="permissions_notifications_alert_message">Enable notifications to stay updated with important alerts.</string>
+    <string name="dialog_telemetry_item_permission_location">Location Permission</string>
+    <string name="dialog_telemetry_location_description">Access required for location services.</string>
+    <string name="dialog_telemetry_item_permission_notifications">Notifications Permission</string>
+    <string name="dialog_telemetry_notifications_description">Access required for notifications.</string>
+    <string name="permissions_screen_title">Permissions Required</string>
+    <string name="permissions_screen_description">To continue, please grant the necessary permissions.</string>
+    <string name="permissions_alert_go_to_settings">Go to Settings</string>
+    <string name="permissions_dont_allow">Don\'t Allow</string>
+    <string name="allow">Allow</string>
+    <string name="d">d</string>
 </resources>
+

@@ -1,37 +1,43 @@
 package dev.onelenyk.pprominec.presentation.components.permissions
 
 import android.content.Context
+import androidx.activity.ComponentActivity
 import com.arkivanov.decompose.ComponentContext
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
+// Enhanced Interface
 interface PermissionsComponent {
-    val state: StateFlow<PermissionsState>
-    fun checkPermission(permission: String, context: Context)
-    fun requestPermission(permission: String, context: Context)
-}
+    val permissionsScreenState: StateFlow<PermissionsManager.PermissionsScreenState>
 
-sealed class PermissionsState {
-    object Idle : PermissionsState()
-    object Granted : PermissionsState()
-    object Denied : PermissionsState()
-    object Requesting : PermissionsState()
+    fun checkPermissionsState(activity: ComponentActivity)
+    fun requestPermission(permission: PermissionsManager.Permission, context: Context)
+    fun onNewPermissionState(permissionStates: Map<PermissionsManager.Permission, PermissionsManager.PermissionState>)
+    fun openAppSettings(context: Context)
+    val onBack: () -> Unit
 }
 
 class DefaultPermissionsComponent(
-    componentContext: ComponentContext
+    componentContext: ComponentContext,
+    private val permissionsManager: PermissionsManager,
+    override val onBack: () -> Unit = { }
 ) : PermissionsComponent, ComponentContext by componentContext {
-    private val _state = MutableStateFlow<PermissionsState>(PermissionsState.Idle)
-    override val state: StateFlow<PermissionsState> = _state.asStateFlow()
 
-    override fun checkPermission(permission: String, context: Context) {
-        val granted = context.checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        _state.value = if (granted) PermissionsState.Granted else PermissionsState.Denied
+    override val permissionsScreenState: StateFlow<PermissionsManager.PermissionsScreenState> =
+        permissionsManager.stateFlow
+
+    override fun checkPermissionsState(activity: ComponentActivity) {
+        permissionsManager.checkPermissionsState(activity)
     }
 
-    override fun requestPermission(permission: String, context: Context) {
-        _state.value = PermissionsState.Requesting
-        // Actual request should be handled in the UI layer (Composable) via launcher
+    override fun requestPermission(permission: PermissionsManager.Permission, context: Context) {
+        permissionsManager.requestPermission(permission, context)
     }
-} 
+
+    override fun onNewPermissionState(permissionStates: Map<PermissionsManager.Permission, PermissionsManager.PermissionState>) {
+        permissionsManager.onNewPermissionState(permissionStates)
+    }
+
+    override fun openAppSettings(context: Context) {
+        permissionsManager.openAppSettings(context)
+    }
+}

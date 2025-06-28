@@ -14,10 +14,12 @@ interface SettingsComponent {
     val state: StateFlow<SettingsState>
     fun onToggleDarkMode(isDarkMode: Boolean)
     fun onToggleNotifications(enabled: Boolean)
+    fun onPermissionsClicked()
 }
 
 class DefaultSettingsComponent(
-    componentContext: ComponentContext
+    componentContext: ComponentContext,
+    private val openPermissions: () -> Unit
 ) : SettingsComponent, ComponentContext by componentContext {
 
     private val _state = MutableStateFlow(SettingsState())
@@ -29,5 +31,9 @@ class DefaultSettingsComponent(
 
     override fun onToggleNotifications(enabled: Boolean) {
         _state.value = _state.value.copy(notificationsEnabled = enabled)
+    }
+
+    override fun onPermissionsClicked() {
+        openPermissions()
     }
 } 
