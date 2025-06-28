@@ -4,7 +4,7 @@ data class GeoCoordinate(val lat: Double, val lon: Double)
 
 data class AzimuthCalculationResult(
     val target: GeoCoordinate,
-    val azimuthFromB: Double
+    val azimuthFromB: Double,
 )
 
 object AzimuthCalculatorAPI {
@@ -20,7 +20,7 @@ object AzimuthCalculatorAPI {
         pointA: GeoCoordinate,
         azimuthFromA: Double,
         distanceKm: Double,
-        pointB: GeoCoordinate
+        pointB: GeoCoordinate,
     ): AzimuthCalculationResult {
         val (latTarget, lonTarget) = GeodesyUtils.directGeodesic(pointA.lat, pointA.lon, azimuthFromA, distanceKm)
         val azimuthFromB = GeodesyUtils.inverseGeodesic(pointB.lat, pointB.lon, latTarget, lonTarget)
@@ -36,15 +36,16 @@ object AzimuthInputNormalizer {
      * Parses and normalizes raw input values (strings) to Double, replacing comma with dot and trimming whitespace.
      * Returns null if any value is invalid.
      */
-    fun parseCoordinate(latRaw: String, lonRaw: String): GeoCoordinate? {
+    fun parseCoordinate(
+        latRaw: String,
+        lonRaw: String,
+    ): GeoCoordinate? {
         val lat = latRaw.replace(',', '.').trim().toDoubleOrNull()
         val lon = lonRaw.replace(',', '.').trim().toDoubleOrNull()
         return if (lat != null && lon != null) GeoCoordinate(lat, lon) else null
     }
 
-    fun parseAzimuth(azimuthRaw: String): Double? =
-        azimuthRaw.replace(',', '.').trim().toDoubleOrNull()
+    fun parseAzimuth(azimuthRaw: String): Double? = azimuthRaw.replace(',', '.').trim().toDoubleOrNull()
 
-    fun parseDistance(distanceRaw: String): Double? =
-        distanceRaw.replace(',', '.').trim().toDoubleOrNull()
+    fun parseDistance(distanceRaw: String): Double? = distanceRaw.replace(',', '.').trim().toDoubleOrNull()
 }

@@ -6,16 +6,16 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class AzimuthCalculatorAPITest {
-
     @Test
     fun testSamples() {
         samples.forEach { sample ->
-            val result = AzimuthCalculatorAPI.calculate(
-                sample.pointA,
-                sample.azimuthFromA,
-                sample.distanceKm,
-                sample.pointB
-            )
+            val result =
+                AzimuthCalculatorAPI.calculate(
+                    sample.pointA,
+                    sample.azimuthFromA,
+                    sample.distanceKm,
+                    sample.pointB,
+                )
 
             Assertions.assertEquals(sample.expectedLat, result.target.lat, 0.0001)
             Assertions.assertEquals(sample.expectedLon, result.target.lon, 0.0001)

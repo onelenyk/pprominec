@@ -29,23 +29,24 @@ fun CustomNavigationBarItem(
     label: String? = null,
     modifier: Modifier = Modifier,
     selectedContentColor: Color = MaterialTheme.colorScheme.primary,
-    unselectedContentColor: Color = MaterialTheme.colorScheme.primary
+    unselectedContentColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     val contentColor by animateColorAsState(
         targetValue = if (selected) selectedContentColor else unselectedContentColor,
-        label = "contentColor"
+        label = "contentColor",
     )
 
     Column(
-        modifier = modifier
+        modifier =
+        modifier
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null, // No ripple effect for a minimalistic feel
-                onClick = onClick
+                onClick = onClick,
             )
             .padding(horizontal = 8.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             Icon(imageVector = icon, contentDescription = label)
@@ -55,4 +56,4 @@ fun CustomNavigationBarItem(
             }
         }
     }
-} 
+}

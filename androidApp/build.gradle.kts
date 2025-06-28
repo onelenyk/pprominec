@@ -2,8 +2,11 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.kotlinx.serialization)  // Add this line
+    alias(libs.plugins.kotlinx.serialization)
+}
 
+configurations {
+    create("ktlint")
 }
 
 android {
@@ -53,8 +56,27 @@ android {
     }
 }
 
+// Ktlint tasks
+tasks.register<JavaExec>("ktlint") {
+    group = "verification"
+    description = "Check Kotlin code style."
+    classpath = configurations["ktlint"]
+    mainClass.set("com.pinterest.ktlint.Main")
+    args("src/**/*.kt")
+    // see https://pinterest.github.io/ktlint/install/cli/#command-line-usage for more information
+}
+
+tasks.register<JavaExec>("ktlintFormat") {
+    group = "formatting"
+    description = "Fix Kotlin code style deviations."
+    classpath = configurations["ktlint"]
+    mainClass.set("com.pinterest.ktlint.Main")
+    args("-F", "src/**/*.kt")
+    jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
+    // see https://pinterest.github.io/ktlint/install/cli/#command-line-usage for more information
+}
+
 dependencies {
-    implementation(projects.shared)
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
@@ -64,7 +86,6 @@ dependencies {
     implementation(libs.decompose.compose.jetbrains)
 
     implementation(libs.geographiclib.java)
-
 
     implementation(libs.koin.core)
     implementation(libs.koin.android)
@@ -98,9 +119,12 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.20")
 
     implementation("com.jakewharton.timber:timber:5.0.1")
+
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+
+    add("ktlint", "com.pinterest:ktlint:0.48.2")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
 }
-

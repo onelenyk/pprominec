@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.arkivanov.decompose.ComponentContext
-import dev.onelenyk.pprominec.presentation.components.main.MapFileStorage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,10 +16,15 @@ import java.io.File
 
 interface MapComponent {
     val state: StateFlow<MapState>
+
     fun onAddMapUri(uri: String)
+
     fun onRemoveMapUri(uri: String)
+
     fun onSelectMapUri(uri: String?)
+
     fun onRemoveFromStorage(file: File)
+
     fun onClearStorage()
 }
 
@@ -29,7 +33,7 @@ data class MapState(
     val selectedMapUri: String? = null,
     val isLoading: Boolean = false,
     val selectedMapFile: File? = null,
-    val storedFiles: List<File> = emptyList()
+    val storedFiles: List<File> = emptyList(),
 )
 
 class DefaultMapComponent(
@@ -82,7 +86,7 @@ class DefaultMapComponent(
                 val uri = Uri.parse(uriString)
                 appContext.contentResolver.takePersistableUriPermission(
                     uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
                 )
                 val fileName = getFileNameFromUri(appContext, uri) ?: "stored_map_${System.currentTimeMillis()}.map"
                 mapFileStorage.copyUriToStorage(uri, fileName)
@@ -123,7 +127,7 @@ class DefaultMapComponent(
             repository.selectMapUri(uriString ?: "")
         }
     }
-    
+
     override fun onRemoveFromStorage(file: File) {
         coroutineScope.launch {
             _state.value = _state.value.copy(isLoading = true)
@@ -160,7 +164,10 @@ class DefaultMapComponent(
         }
     }
 
-    private fun getFileNameFromUri(context: Context, uri: Uri): String? {
+    private fun getFileNameFromUri(
+        context: Context,
+        uri: Uri,
+    ): String? {
         if (uri.scheme == "file") {
             return uri.lastPathSegment
         }

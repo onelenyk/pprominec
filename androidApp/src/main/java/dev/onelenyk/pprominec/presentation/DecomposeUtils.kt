@@ -19,7 +19,10 @@ import kotlin.coroutines.CoroutineContext
 val ComponentContext.coroutineScope: CoroutineScope
     get() = cancellableCoroutineScope(Dispatchers.Main + SupervisorJob())
 
-fun <C : Any> StackNavigator<C>.pushCatch(configuration: C, onComplete: () -> Unit = {}) {
+fun <C : Any> StackNavigator<C>.pushCatch(
+    configuration: C,
+    onComplete: () -> Unit = {},
+) {
     executeSafely {
         push(configuration, onComplete)
     }
@@ -33,9 +36,7 @@ fun executeSafely(op: () -> Unit) {
     }
 }
 
-fun LifecycleOwner.cancellableCoroutineScope(
-    context: CoroutineContext = Dispatchers.Main.immediate,
-): CoroutineScope =
+fun LifecycleOwner.cancellableCoroutineScope(context: CoroutineContext = Dispatchers.Main.immediate): CoroutineScope =
     CoroutineScope(context = context).withLifecycle(lifecycle)
 
 fun CoroutineScope.withLifecycle(lifecycle: Lifecycle): CoroutineScope {

@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.presentation.components.bottom_nav
+package dev.onelenyk.pprominec.presentation.components.bottomnav
 
 import MapFilesRepository
 import android.content.Context
@@ -10,15 +10,12 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
 import dev.onelenyk.pprominec.presentation.components.main.DefaultMainComponent
 import dev.onelenyk.pprominec.presentation.components.main.DefaultMapComponent
-import dev.onelenyk.pprominec.presentation.components.main.MapComponent
 import dev.onelenyk.pprominec.presentation.components.main.MainComponent
+import dev.onelenyk.pprominec.presentation.components.main.MapComponent
 import dev.onelenyk.pprominec.presentation.components.main.MapFileStorage
 import dev.onelenyk.pprominec.presentation.components.settings.DefaultSettingsComponent
 import dev.onelenyk.pprominec.presentation.components.settings.SettingsComponent
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.serialization.Serializable
 import org.koin.java.KoinJavaComponent.getKoin
 
@@ -26,22 +23,26 @@ interface BottomNavComponent {
     val stack: Value<ChildStack<*, Child>>
 
     fun onMainTabClicked()
+
     fun onSettingsTabClicked()
+
     fun onMapTabClicked()
+
     fun onPermissionsClicked()
 
     sealed class Child {
         data class Main(val component: MainComponent) : Child()
+
         data class Map(val component: MapComponent) : Child()
+
         data class Settings(val component: SettingsComponent) : Child()
     }
 }
 
 class DefaultBottomNavComponent(
     componentContext: ComponentContext,
-    private val onPermissionsClicked: () -> Unit
+    private val onPermissionsClicked: () -> Unit,
 ) : BottomNavComponent, ComponentContext by componentContext {
-
     private val navigation = StackNavigation<Config>()
 
     override val stack: Value<ChildStack<*, BottomNavComponent.Child>> =
@@ -53,7 +54,10 @@ class DefaultBottomNavComponent(
             childFactory = ::child,
         )
 
-    private fun child(config: Config, componentContext: ComponentContext): BottomNavComponent.Child =
+    private fun child(
+        config: Config,
+        componentContext: ComponentContext,
+    ): BottomNavComponent.Child =
         when (config) {
             is Config.Main -> BottomNavComponent.Child.Main(DefaultMainComponent(componentContext))
             is Config.Settings -> BottomNavComponent.Child.Settings(DefaultSettingsComponent(componentContext, onPermissionsClicked))
@@ -69,8 +73,8 @@ class DefaultBottomNavComponent(
                         appContext = appContext,
                         repository = repository,
                         mapFileStorage = mapFileStorage,
-                        coroutineScope = scope
-                    )
+                        coroutineScope = scope,
+                    ),
                 )
             }
         }
@@ -102,4 +106,4 @@ class DefaultBottomNavComponent(
         @Serializable
         data object Map : Config()
     }
-} 
+}

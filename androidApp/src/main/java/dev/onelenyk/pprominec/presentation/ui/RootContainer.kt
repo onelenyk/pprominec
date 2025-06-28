@@ -5,13 +5,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import dev.onelenyk.pprominec.presentation.components.root.RootComponent
-import dev.onelenyk.pprominec.presentation.ui.PermissionsScreen
 
 @Composable
 fun RootContainer(component: RootComponent) {
     Children(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier =
+            Modifier
+                .fillMaxSize(),
         stack = component.childStack,
     ) {
         when (val child = it.instance) {

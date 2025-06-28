@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,16 +58,16 @@ fun PermissionsScreen(permissionsComponent: PermissionsComponent) {
         content = {
             PermissionsContent(
                 modifier = Modifier,
-                permissionsComponent = permissionsComponent
+                permissionsComponent = permissionsComponent,
             )
-        }
+        },
     )
 }
 
 @Composable
 fun PermissionsContent(
     modifier: Modifier = Modifier,
-    permissionsComponent: PermissionsComponent
+    permissionsComponent: PermissionsComponent,
 ) {
     val context = LocalContext.current
     val activity = context as ComponentActivity
@@ -78,28 +77,31 @@ fun PermissionsContent(
     var showRationaleDialog by remember { mutableStateOf<PermissionsManager.Permission?>(null) }
     var showSettingsDialog by remember { mutableStateOf<PermissionsManager.Permission?>(null) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-    ) { result ->
-        val permission = PermissionsManager.Permission.entries.first {
-            it.manifestPermissions.containsAll(result.keys)
-        }
-        val permissionState =
-            PermissionsManager.SimplePermissionsManager.checkPermissionWithRationale(
-                activity,
-                permission
-            )
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestMultiplePermissions(),
+        ) { result ->
+            val permission =
+                PermissionsManager.Permission.entries.first {
+                    it.manifestPermissions.containsAll(result.keys)
+                }
+            val permissionState =
+                PermissionsManager.SimplePermissionsManager.checkPermissionWithRationale(
+                    activity,
+                    permission,
+                )
 
-        permissionsComponent.onNewPermissionState(mapOf(permission to permissionState))
-    }
+            permissionsComponent.onNewPermissionState(mapOf(permission to permissionState))
+        }
 
     // Refresh permissions on every onResume
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                permissionsComponent.checkPermissionsState(activity)
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    permissionsComponent.checkPermissionsState(activity)
+                }
             }
-        }
 
         lifecycleOwner.lifecycle.addObserver(observer)
 
@@ -109,31 +111,33 @@ fun PermissionsContent(
     }
 
     Column(
-        modifier = modifier
+        modifier =
+        modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Header
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
+            colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            ),
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
             ) {
                 Text(
                     text = "Permission Manager",
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Current permission states",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OverallStatusChip(state = permissionsScreenState)
@@ -143,7 +147,7 @@ fun PermissionsContent(
         // Check Button
         Button(
             onClick = { permissionsComponent.checkPermissionsState(context) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Check Permissions")
         }
@@ -151,14 +155,14 @@ fun PermissionsContent(
         // Revoke Permissions Button
         OutlinedButton(
             onClick = { permissionsComponent.openAppSettings(context) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Open App Settings")
         }
 
         // Permissions List
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             itemsIndexed(permissionsScreenState.permissions) { index, permission ->
                 PermissionItemCard(
@@ -178,7 +182,7 @@ fun PermissionsContent(
                                 permissionLauncher.launch(permission.type.manifestPermissions.toTypedArray())
                             }
                         }
-                    }
+                    },
                 )
             }
         }
@@ -192,7 +196,7 @@ fun PermissionsContent(
             text = {
                 Text(
                     "This permission is required for the app to function properly. " +
-                            "Please grant the permission to continue."
+                        "Please grant the permission to continue.",
                 )
             },
             confirmButton = {
@@ -201,7 +205,7 @@ fun PermissionsContent(
                         showRationaleDialog = null
                         permissionsComponent.requestPermission(permission, context)
                         permissionLauncher.launch(permission.manifestPermissions.toTypedArray())
-                    }
+                    },
                 ) {
                     Text("Grant Permission")
                 }
@@ -210,7 +214,7 @@ fun PermissionsContent(
                 TextButton(onClick = { showRationaleDialog = null }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 
@@ -222,7 +226,7 @@ fun PermissionsContent(
             text = {
                 Text(
                     "This permission has been permanently denied. " +
-                            "You need to enable it manually in the app settings."
+                        "You need to enable it manually in the app settings.",
                 )
             },
             confirmButton = {
@@ -230,7 +234,7 @@ fun PermissionsContent(
                     onClick = {
                         showSettingsDialog = null
                         permissionsComponent.openAppSettings(context)
-                    }
+                    },
                 ) {
                     Text("Open Settings")
                 }
@@ -239,7 +243,7 @@ fun PermissionsContent(
                 TextButton(onClick = { showSettingsDialog = null }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 }
@@ -247,53 +251,60 @@ fun PermissionsContent(
 @Composable
 fun PermissionItemCard(
     permission: PermissionsManager.AppPermission,
-    onRequestPermission: () -> Unit
+    onRequestPermission: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when (permission.state) {
+        colors =
+        CardDefaults.cardColors(
+            containerColor =
+            when (permission.state) {
                 PermissionsManager.PermissionState.GRANTED -> MaterialTheme.colorScheme.surfaceVariant
-                PermissionsManager.PermissionState.DENIED -> MaterialTheme.colorScheme.errorContainer.copy(
-                    alpha = 0.1f
-                )
+                PermissionsManager.PermissionState.DENIED ->
+                    MaterialTheme.colorScheme.errorContainer.copy(
+                        alpha = 0.1f,
+                    )
 
-                PermissionsManager.PermissionState.REQUIRE_RATIONALE -> MaterialTheme.colorScheme.primaryContainer.copy(
-                    alpha = 0.3f
-                )
+                PermissionsManager.PermissionState.REQUIRE_RATIONALE ->
+                    MaterialTheme.colorScheme.primaryContainer.copy(
+                        alpha = 0.3f,
+                    )
 
-                PermissionsManager.PermissionState.PERMANENTLY_DENIED -> MaterialTheme.colorScheme.errorContainer.copy(
-                    alpha = 0.2f
-                )
+                PermissionsManager.PermissionState.PERMANENTLY_DENIED ->
+                    MaterialTheme.colorScheme.errorContainer.copy(
+                        alpha = 0.2f,
+                    )
 
-                PermissionsManager.PermissionState.REQUESTING -> MaterialTheme.colorScheme.primaryContainer.copy(
-                    alpha = 0.5f
-                )
+                PermissionsManager.PermissionState.REQUESTING ->
+                    MaterialTheme.colorScheme.primaryContainer.copy(
+                        alpha = 0.5f,
+                    )
 
                 else -> MaterialTheme.colorScheme.surface
-            }
-        )
+            },
+        ),
     ) {
         Row(
-            modifier = Modifier
+            modifier =
+            Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Text(
                     text = permission.type.name,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Permission: ${permission.type.manifestPermissions.joinToString(", ")}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 StatusChip(state = permission.state)
@@ -305,19 +316,19 @@ fun PermissionItemCard(
             if (permission.state != PermissionsManager.PermissionState.GRANTED) {
                 Button(
                     onClick = onRequestPermission,
-                    enabled = permission.state != PermissionsManager.PermissionState.REQUESTING
+                    enabled = permission.state != PermissionsManager.PermissionState.REQUESTING,
                 ) {
                     if (permission.state == PermissionsManager.PermissionState.REQUESTING) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                     } else {
                         Text(
                             when (permission.state) {
                                 PermissionsManager.PermissionState.PERMANENTLY_DENIED -> "Settings"
                                 else -> "Request"
-                            }
+                            },
                         )
                     }
                 }
@@ -328,68 +339,82 @@ fun PermissionItemCard(
 
 @Composable
 fun StatusChip(state: PermissionsManager.PermissionState) {
-    val (text, color) = when (state) {
-        PermissionsManager.PermissionState.GRANTED -> "Granted" to Color(0xFF4CAF50)
-        PermissionsManager.PermissionState.DENIED -> "Denied" to Color(0xFFFF5722)
-        PermissionsManager.PermissionState.REQUIRE_RATIONALE -> "Requires Rationale" to Color(
-            0xFFFF9800
-        )
+    val (text, color) =
+        when (state) {
+            PermissionsManager.PermissionState.GRANTED -> "Granted" to Color(0xFF4CAF50)
+            PermissionsManager.PermissionState.DENIED -> "Denied" to Color(0xFFFF5722)
+            PermissionsManager.PermissionState.REQUIRE_RATIONALE ->
+                "Requires Rationale" to
+                    Color(
+                        0xFFFF9800,
+                    )
 
-        PermissionsManager.PermissionState.PERMANENTLY_DENIED -> "Permanently Denied" to Color(
-            0xFFE91E63
-        )
+            PermissionsManager.PermissionState.PERMANENTLY_DENIED ->
+                "Permanently Denied" to
+                    Color(
+                        0xFFE91E63,
+                    )
 
-        PermissionsManager.PermissionState.REQUESTING -> "Requesting..." to Color(0xFF2196F3)
-        PermissionsManager.PermissionState.UNKNOWN -> "Unknown" to Color(0xFF9E9E9E)
-    }
+            PermissionsManager.PermissionState.REQUESTING -> "Requesting..." to Color(0xFF2196F3)
+            PermissionsManager.PermissionState.UNKNOWN -> "Unknown" to Color(0xFF9E9E9E)
+        }
 
     Surface(
         color = color.copy(alpha = 0.1f),
         shape = MaterialTheme.shapes.small,
-        modifier = Modifier.padding(vertical = 2.dp)
+        modifier = Modifier.padding(vertical = 2.dp),
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = color
+            color = color,
         )
     }
 }
 
 @Composable
 fun OverallStatusChip(state: PermissionsManager.PermissionsScreenState) {
-    val (text, color) = when {
-        state.canContinue -> "All Mandatory Permissions Granted" to Color(0xFF4CAF50)
-        state.permissions.any { it.state == PermissionsManager.PermissionState.PERMANENTLY_DENIED } -> "Some Permissions Permanently Denied" to Color(
-            0xFFE91E63
-        )
+    val (text, color) =
+        when {
+            state.canContinue -> "All Mandatory Permissions Granted" to Color(0xFF4CAF50)
+            state.permissions.any { it.state == PermissionsManager.PermissionState.PERMANENTLY_DENIED } ->
+                "Some Permissions Permanently Denied" to
+                    Color(
+                        0xFFE91E63,
+                    )
 
-        state.permissions.any { it.state == PermissionsManager.PermissionState.DENIED } -> "Some Permissions Denied" to Color(
-            0xFFFF5722
-        )
+            state.permissions.any { it.state == PermissionsManager.PermissionState.DENIED } ->
+                "Some Permissions Denied" to
+                    Color(
+                        0xFFFF5722,
+                    )
 
-        state.permissions.any { it.state == PermissionsManager.PermissionState.REQUIRE_RATIONALE } -> "Some Require Rationale" to Color(
-            0xFFFF9800
-        )
+            state.permissions.any { it.state == PermissionsManager.PermissionState.REQUIRE_RATIONALE } ->
+                "Some Require Rationale" to
+                    Color(
+                        0xFFFF9800,
+                    )
 
-        state.permissions.any { it.state == PermissionsManager.PermissionState.REQUESTING } -> "Requesting Permissions..." to Color(
-            0xFF2196F3
-        )
+            state.permissions.any { it.state == PermissionsManager.PermissionState.REQUESTING } ->
+                "Requesting Permissions..." to
+                    Color(
+                        0xFF2196F3,
+                    )
 
-        else -> "Mixed Status" to Color(0xFF9E9E9E)
-    }
+            else -> "Mixed Status" to Color(0xFF9E9E9E)
+        }
 
     Surface(
         color = color.copy(alpha = 0.15f),
-        shape = MaterialTheme.shapes.medium
+        shape = MaterialTheme.shapes.medium,
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,
             color = color,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
         )
     }
 }

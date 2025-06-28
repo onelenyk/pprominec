@@ -1,6 +1,5 @@
 package dev.onelenyk.pprominec.presentation.ui
 
-import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,14 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.onelenyk.pprominec.presentation.components.main.MapComponent
 import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.modules.MBTilesFileArchive
-import org.osmdroid.tileprovider.modules.OfflineTileProvider
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.io.File
@@ -39,16 +33,16 @@ fun MapScreen(component: MapComponent) {
         content = {
             MapContent(
                 modifier = Modifier,
-                component = component
+                component = component,
             )
-        }
+        },
     )
 }
 
 @Composable
 fun MapContent(
     modifier: Modifier = Modifier,
-    component: MapComponent
+    component: MapComponent,
 ) {
     val state by component.state.collectAsState()
 
@@ -62,18 +56,19 @@ fun MapContent(
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             Column(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
+                    .padding(16.dp),
             ) {
                 Button(onClick = {
                     mapFilePicker.launch(
                         arrayOf(
                             "application/octet-stream",
                             "application/x-map",
-                            "*/*"
-                        )
+                            "*/*",
+                        ),
                     )
                 }, modifier = Modifier.fillMaxWidth()) {
                     Text("Вибрати .map файл")
@@ -85,7 +80,7 @@ fun MapContent(
                     mapUris = state.mapUris,
                     selectedMapUri = state.selectedMapUri,
                     onSelect = { component.onSelectMapUri(it) },
-                    onDelete = { component.onRemoveMapUri(it) }
+                    onDelete = { component.onRemoveMapUri(it) },
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -93,17 +88,18 @@ fun MapContent(
                 CacheFilesCard(
                     cachedFiles = state.storedFiles,
                     onDelete = { component.onRemoveFromStorage(it) },
-                    onClear = { component.onClearStorage() }
+                    onClear = { component.onClearStorage() },
                 )
             }
 
             // Placeholder for map area
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .background(Color.LightGray),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 if (state.selectedMapFile != null) {
                     Text("Map display is not available.", color = Color.DarkGray)
@@ -116,11 +112,12 @@ fun MapContent(
 
         if (state.isLoading) {
             Box(
-                modifier = Modifier
+                modifier =
+                Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.5f))
                     .clickable(enabled = false, onClick = {}),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
             }
@@ -133,23 +130,23 @@ fun MapFilesCard(
     mapUris: Set<String>,
     selectedMapUri: String?,
     onSelect: (String) -> Unit,
-    onDelete: (String) -> Unit
+    onDelete: (String) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(8.dp)
+        elevation = CardDefaults.cardElevation(8.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = if (mapUris.isNotEmpty()) "Доступні .map файли:" else "Файли не додано",
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 8.dp),
             )
             mapUris.forEach { uriString ->
                 val isSelected = uriString == selectedMapUri
                 Row(modifier = Modifier.padding(bottom = 8.dp)) {
                     Text(
                         Uri.parse(uriString).lastPathSegment ?: uriString,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
                     if (!isSelected) {
                         Button(onClick = { onSelect(uriString) }) {
@@ -160,7 +157,7 @@ fun MapFilesCard(
                     }
                     Button(
                         onClick = { onDelete(uriString) },
-                        modifier = Modifier.padding(start = 8.dp)
+                        modifier = Modifier.padding(start = 8.dp),
                     ) {
                         Text("Видалити")
                     }
@@ -174,11 +171,11 @@ fun MapFilesCard(
 fun CacheFilesCard(
     cachedFiles: List<File>,
     onDelete: (File) -> Unit,
-    onClear: () -> Unit
+    onClear: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(8.dp)
+        elevation = CardDefaults.cardElevation(8.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Збережені файли:", modifier = Modifier.padding(bottom = 8.dp))
@@ -191,7 +188,7 @@ fun CacheFilesCard(
                         Text("${file.length()} байт", modifier = Modifier.padding(start = 8.dp))
                         Button(
                             onClick = { onDelete(file) },
-                            modifier = Modifier.padding(start = 8.dp)
+                            modifier = Modifier.padding(start = 8.dp),
                         ) {
                             Text("Видалити")
                         }
@@ -204,7 +201,6 @@ fun CacheFilesCard(
         }
     }
 }
-
 
 @Composable
 fun SimpleMap() {
@@ -228,7 +224,7 @@ fun SimpleMap() {
                     mapView = this
                 }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         )
 
         // Locate button
@@ -242,9 +238,10 @@ fun SimpleMap() {
                     }
                 }
             },
-            modifier = Modifier
+            modifier =
+            Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
+                .padding(16.dp),
         ) {
             Text("📍")
         }

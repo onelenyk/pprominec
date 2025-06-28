@@ -78,7 +78,6 @@ val Speedo7Green70 = Color(0xff456b23)
 val Speedo7Green80 = Color(0xff2e4718)
 val Speedo7Green90 = Color(0xff17240c)
 
-
 val LightBlue = Color(0xFFE3F2FD)
 val LightYellow = Color(0xFFFFF9C4)
 val LightGreen = Color(0xFFC8E6C9)

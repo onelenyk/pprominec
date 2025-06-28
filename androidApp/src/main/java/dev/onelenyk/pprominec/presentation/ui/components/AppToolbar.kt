@@ -32,21 +32,21 @@ import dev.onelenyk.pprominec.presentation.ui.theme.Typography
 fun AppToolbar(
     title: String,
     showBack: Boolean = false,
-    onBackClick: (() -> Unit) = {}
+    onBackClick: (() -> Unit) = {},
 ) {
     Column {
         TopAppBar(
             title = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (showBack) {
                         IconButton(modifier = Modifier.size(48.dp), onClick = onBackClick) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
@@ -55,7 +55,7 @@ fun AppToolbar(
                         modifier = Modifier.weight(1f),
                         text = title,
                         textAlign = TextAlign.Center,
-                        style = Typography.H1
+                        style = Typography.H1,
                     )
 
                     // Spacer to balance the back button
@@ -64,10 +64,11 @@ fun AppToolbar(
                     }
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
-            ),
-            expandedHeight = 44.dp
+            colors =
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            expandedHeight = 44.dp,
         )
         HorizontalDivider()
     }

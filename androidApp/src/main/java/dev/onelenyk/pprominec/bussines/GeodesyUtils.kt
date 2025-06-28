@@ -17,7 +17,7 @@ object GeodesyUtils {
         latA: Double,
         lonA: Double,
         azimuthFromA: Double,
-        distanceKm: Double
+        distanceKm: Double,
     ): Pair<Double, Double> {
         val result: GeodesicData = Geodesic.WGS84.Direct(latA, lonA, azimuthFromA, distanceKm * 1000)
         return Pair(result.lat2, result.lon2)
@@ -31,7 +31,7 @@ object GeodesyUtils {
         latB: Double,
         lonB: Double,
         latTarget: Double,
-        lonTarget: Double
+        lonTarget: Double,
     ): Double {
         val result: GeodesicData = Geodesic.WGS84.Inverse(latB, lonB, latTarget, lonTarget)
         // azi1 is the azimuth from B to target
@@ -40,4 +40,3 @@ object GeodesyUtils {
         return String.format(Locale.US, "%.2f", azimuth).toDouble()
     }
 }
-
