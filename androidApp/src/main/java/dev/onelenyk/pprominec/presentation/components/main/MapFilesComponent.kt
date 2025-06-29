@@ -15,8 +15,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 import dev.onelenyk.pprominec.presentation.ui.MapMarker
 
-interface MapComponent {
-    val state: StateFlow<MapState>
+interface MapFilesComponent {
+    val state: StateFlow<MapFilesState>
 
     fun onAddMapUri(uri: String)
 
@@ -27,34 +27,25 @@ interface MapComponent {
     fun onRemoveFromStorage(file: File)
 
     fun onClearStorage()
-    
-    fun onMarkerClick(marker: MapMarker)
-    
-    fun addMarker(marker: MapMarker)
-    
-    fun removeMarker(markerId: String)
-    
-    fun clearMarkers()
 }
 
-data class MapState(
+data class MapFilesState(
     val mapUris: Set<String> = emptySet(),
     val selectedMapUri: String? = null,
     val isLoading: Boolean = false,
     val selectedMapFile: File? = null,
     val storedFiles: List<File> = emptyList(),
-    val markers: List<MapMarker> = emptyList(),
 )
 
-class DefaultMapComponent(
+class DefaultMapFilesComponent(
     componentContext: ComponentContext,
     private val appContext: Context,
     private val repository: MapFilesRepository,
     private val mapFileStorage: MapFileStorage,
     private val coroutineScope: CoroutineScope,
-) : MapComponent, ComponentContext by componentContext {
-    private val _state = MutableStateFlow(MapState())
-    override val state: StateFlow<MapState>
+) : MapFilesComponent, ComponentContext by componentContext {
+    private val _state = MutableStateFlow(MapFilesState())
+    override val state: StateFlow<MapFilesState>
         get() = _state.asStateFlow()
 
     init {
@@ -174,28 +165,6 @@ class DefaultMapComponent(
         }
     }
 
-    override fun onMarkerClick(marker: MapMarker) {
-        // Handle marker click - you can show a dialog, navigate to details, etc.
-        println("Marker clicked: ${marker.title} at ${marker.latitude}, ${marker.longitude}")
-    }
-
-    override fun addMarker(marker: MapMarker) {
-        val currentMarkers = _state.value.markers.toMutableList()
-        // Remove existing marker with same ID if it exists
-        currentMarkers.removeAll { it.id == marker.id }
-        currentMarkers.add(marker)
-        _state.value = _state.value.copy(markers = currentMarkers)
-    }
-
-    override fun removeMarker(markerId: String) {
-        val currentMarkers = _state.value.markers.toMutableList()
-        currentMarkers.removeAll { it.id == markerId }
-        _state.value = _state.value.copy(markers = currentMarkers)
-    }
-
-    override fun clearMarkers() {
-        _state.value = _state.value.copy(markers = emptyList())
-    }
 
     private fun getFileNameFromUri(
         context: Context,
