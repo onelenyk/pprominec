@@ -1,6 +1,5 @@
 package dev.onelenyk.pprominec.presentation.components.bottomnav
 
-import MapFilesRepository
 import android.content.Context
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
@@ -12,7 +11,6 @@ import dev.onelenyk.pprominec.presentation.components.main.DefaultMainComponent
 import dev.onelenyk.pprominec.presentation.components.main.DefaultMapComponent
 import dev.onelenyk.pprominec.presentation.components.main.MainComponent
 import dev.onelenyk.pprominec.presentation.components.main.MapComponent
-import dev.onelenyk.pprominec.presentation.components.main.MapFileStorage
 import dev.onelenyk.pprominec.presentation.components.settings.DefaultSettingsComponent
 import dev.onelenyk.pprominec.presentation.components.settings.SettingsComponent
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +28,8 @@ interface BottomNavComponent {
 
     fun onPermissionsClicked()
 
+    fun onMapSettingsClicked()
+
     sealed class Child {
         data class Main(val component: MainComponent) : Child()
 
@@ -42,6 +42,7 @@ interface BottomNavComponent {
 class DefaultBottomNavComponent(
     componentContext: ComponentContext,
     private val onPermissionsClicked: () -> Unit,
+    private val onMapSettingsClicked: () -> Unit,
 ) : BottomNavComponent, ComponentContext by componentContext {
     private val navigation = StackNavigation<Config>()
 
@@ -60,19 +61,15 @@ class DefaultBottomNavComponent(
     ): BottomNavComponent.Child =
         when (config) {
             is Config.Main -> BottomNavComponent.Child.Main(DefaultMainComponent(componentContext))
-            is Config.Settings -> BottomNavComponent.Child.Settings(DefaultSettingsComponent(componentContext, onPermissionsClicked))
+            is Config.Settings -> BottomNavComponent.Child.Settings(DefaultSettingsComponent(componentContext, onPermissionsClicked, onMapSettingsClicked))
             is Config.Map -> {
                 val appContext = getKoin().get<Context>()
-                val repository = getKoin().get<MapFilesRepository>()
-                val mapFileStorage = getKoin().get<MapFileStorage>()
                 val scope = getKoin().get<CoroutineScope>()
 
                 BottomNavComponent.Child.Map(
                     DefaultMapComponent(
                         componentContext = componentContext,
                         appContext = appContext,
-                        repository = repository,
-                        mapFileStorage = mapFileStorage,
                         coroutineScope = scope,
                     ),
                 )
@@ -93,6 +90,10 @@ class DefaultBottomNavComponent(
 
     override fun onPermissionsClicked() {
         onPermissionsClicked()
+    }
+
+    override fun onMapSettingsClicked() {
+        onMapSettingsClicked()
     }
 
     @Serializable

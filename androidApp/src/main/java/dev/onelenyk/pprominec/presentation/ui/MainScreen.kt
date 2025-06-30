@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -63,29 +63,46 @@ import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
 @Composable
 fun AppScreen(
     toolbar: @Composable (() -> Unit)? = null,
-    bottomBar: @Composable () -> Unit = {},
+    bottomBar: @Composable (() -> Unit)? = null,
     showInnerPadding: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
         modifier = Modifier
-
             .fillMaxSize(),
         topBar = {
             if (toolbar != null) {
-                Box(Modifier
-                    .statusBarsPadding()
+                Box(
+                    Modifier
+                        .statusBarsPadding(),
                 ) {
                     toolbar()
                 }
             }
         },
-        bottomBar = { bottomBar() },
+        bottomBar = {
+            if (bottomBar != null) {
+                Box(
+                    Modifier,
+                ) {
+                    bottomBar()
+                }
+            }
+        },
     ) { innerPadding ->
-        var modifier = if (showInnerPadding)
+        var modifier = if (showInnerPadding) {
             Modifier.padding(innerPadding)
-        else
+        } else {
             Modifier
+        }
+
+        if (toolbar == null) {
+            modifier = modifier.statusBarsPadding()
+        }
+
+        if (bottomBar == null) {
+            modifier = modifier.navigationBarsPadding()
+        }
 
         Box(modifier = modifier) {
             content()
@@ -96,6 +113,7 @@ fun AppScreen(
 @Composable
 fun MainScreen(component: MainComponent) {
     AppScreen(
+        showInnerPadding = true,
         toolbar = { AppToolbar(title = "Калькулятор") },
         content = {
             InputAndResultScreen(
@@ -130,11 +148,10 @@ fun InputAndResultScreen(
 
     Column(
         modifier =
-            modifier
-                .imePadding()
-                .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(rememberScrollState())
-                .padding(all = 16.dp),
+        modifier
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(all = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         IntroCard()
@@ -225,14 +242,14 @@ fun SampleSelectorCard(
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
+                        Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
                         colors =
-                            OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF7E57C2),
-                                unfocusedBorderColor = Color(0xFF7E57C2),
-                            ),
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF7E57C2),
+                            unfocusedBorderColor = Color(0xFF7E57C2),
+                        ),
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
@@ -275,7 +292,7 @@ fun PointACard(
                 label = {
                     Text(
                         "Широта A",
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 },
                 supportingText = {
@@ -285,20 +302,20 @@ fun PointACard(
                     )
                 },
                 keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next,
-                    ),
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                ),
                 singleLine = true,
                 leadingIcon = { Text("🧭") },
                 textStyle = androidx.compose.ui.text.TextStyle(color = MaterialTheme.colorScheme.inverseSurface),
                 colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        disabledBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        errorBorderColor = Color.Red,
-                    ),
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    disabledBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    errorBorderColor = Color.Red,
+                ),
             )
             OutlinedTextField(
                 value = state.lonA,
@@ -306,7 +323,7 @@ fun PointACard(
                 label = {
                     Text(
                         "Довгота A",
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 },
                 supportingText = {
@@ -316,20 +333,20 @@ fun PointACard(
                     )
                 },
                 keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next,
-                    ),
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                ),
                 singleLine = true,
                 leadingIcon = { Text("🗺️") },
                 textStyle = androidx.compose.ui.text.TextStyle(color = MaterialTheme.colorScheme.inverseSurface),
                 colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        disabledBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        errorBorderColor = Color.Red,
-                    ),
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    disabledBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    errorBorderColor = Color.Red,
+                ),
             )
             Divider(
                 thickness = 1.dp,
@@ -351,20 +368,20 @@ fun PointACard(
                     )
                 },
                 keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next,
-                    ),
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                ),
                 singleLine = true,
                 leadingIcon = { Text("↗️") },
                 textStyle = androidx.compose.ui.text.TextStyle(color = MaterialTheme.colorScheme.inverseSurface),
                 colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        disabledBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        errorBorderColor = Color.Red,
-                    ),
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    disabledBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    errorBorderColor = Color.Red,
+                ),
             )
             OutlinedTextField(
                 value = state.distanceKm,
@@ -382,20 +399,20 @@ fun PointACard(
                     )
                 },
                 keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next,
-                    ),
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                ),
                 singleLine = true,
                 leadingIcon = { Text("📏") },
                 textStyle = androidx.compose.ui.text.TextStyle(color = MaterialTheme.colorScheme.inverseSurface),
                 colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        disabledBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        errorBorderColor = Color.Red,
-                    ),
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    disabledBorderColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    errorBorderColor = Color.Red,
+                ),
             )
         }
     }
@@ -436,20 +453,20 @@ fun PointBCard(
                     )
                 },
                 keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next,
-                    ),
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
+                ),
                 singleLine = true,
                 leadingIcon = { Text("🧭") },
                 textStyle = androidx.compose.ui.text.TextStyle(color = MaterialTheme.colorScheme.inverseSurface),
                 colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        disabledBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        errorBorderColor = Color.Red,
-                    ),
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    disabledBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    errorBorderColor = Color.Red,
+                ),
             )
             OutlinedTextField(
                 value = state.lonB,
@@ -467,20 +484,20 @@ fun PointBCard(
                     )
                 },
                 keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done,
-                    ),
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
                 singleLine = true,
                 leadingIcon = { Text("🗺️") },
                 textStyle = androidx.compose.ui.text.TextStyle(color = MaterialTheme.colorScheme.inverseSurface),
                 colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        disabledBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        errorBorderColor = Color.Red,
-                    ),
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    disabledBorderColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    errorBorderColor = Color.Red,
+                ),
             )
         }
     }
@@ -534,18 +551,18 @@ fun ResultScreen(
         )
         Column(
             modifier =
-                Modifier
-                    .padding(bottom = 8.dp)
-                    .background(Color(0xFFF1F8E9), RoundedCornerShape(12.dp))
-                    .clickable {
-                        clipboardManager.setText(AnnotatedString(coordsText))
-                        Toast.makeText(
-                            context,
-                            "Координати скопійовано",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                    .padding(12.dp),
+            Modifier
+                .padding(bottom = 8.dp)
+                .background(Color(0xFFF1F8E9), RoundedCornerShape(12.dp))
+                .clickable {
+                    clipboardManager.setText(AnnotatedString(coordsText))
+                    Toast.makeText(
+                        context,
+                        "Координати скопійовано",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+                .padding(12.dp),
         ) {
             Text(
                 text = "Широта: %.6f".format(latTarget),
@@ -572,14 +589,14 @@ fun ResultScreen(
         )
         Column(
             modifier =
-                Modifier
-                    .background(Color(0xFFE3F2FD), RoundedCornerShape(12.dp))
-                    .clickable {
-                        clipboardManager.setText(AnnotatedString(azimuthText))
-                        Toast.makeText(context, "Азимут скопійовано", Toast.LENGTH_SHORT)
-                            .show()
-                    }
-                    .padding(12.dp),
+            Modifier
+                .background(Color(0xFFE3F2FD), RoundedCornerShape(12.dp))
+                .clickable {
+                    clipboardManager.setText(AnnotatedString(azimuthText))
+                    Toast.makeText(context, "Азимут скопійовано", Toast.LENGTH_SHORT)
+                        .show()
+                }
+                .padding(12.dp),
         ) {
             Text(
                 text = azimuthText,

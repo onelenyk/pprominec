@@ -65,9 +65,9 @@ fun AppToolbar(
                 }
             },
             colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
             expandedHeight = 44.dp,
         )
         HorizontalDivider()

@@ -12,8 +12,6 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,17 +27,24 @@ class PermissionsManager {
                 AppPermission(
                     type = Permission.GPS,
                     icon = Icons.Default.LocationOn,
-                    title = android.R.string.unknownName, // Placeholder
-                    description = android.R.string.unknownName, // Placeholder
+                    title = android.R.string.unknownName,
+                    description = android.R.string.unknownName,
                     state = PermissionState.UNKNOWN,
                 ),
-             /*   AppPermission(
-                    type = Permission.NOTIFICATIONS,
-                    icon = Icons.Default.Notifications, // Placeholder icon
-                    title = android.R.string.unknownName, // Placeholder
-                    description = android.R.string.unknownName, // Placeholder
+          /*      AppPermission(
+                    type = Permission.FILE_ACCESS,
+                    icon = Icons.Default.Edit,
+                    title = android.R.string.unknownName,
+                    description = android.R.string.unknownName,
                     state = PermissionState.UNKNOWN,
                 ),*/
+                /*   AppPermission(
+                       type = Permission.NOTIFICATIONS,
+                       icon = Icons.Default.Notifications,
+                       title = android.R.string.unknownName,
+                       description = android.R.string.unknownName,
+                       state = PermissionState.UNKNOWN,
+                   ),*/
             )
 
         return PermissionsScreenState(
@@ -53,7 +58,10 @@ class PermissionsManager {
         val updatedPermissions =
             currentState.permissions.map { permission ->
                 permission.copy(
-                    state = SimplePermissionsManager.checkPermissionWithRationale(activity, permission.type),
+                    state = SimplePermissionsManager.checkPermissionWithRationale(
+                        activity,
+                        permission.type,
+                    ),
                 )
             }
 
@@ -124,10 +132,13 @@ class PermissionsManager {
             return when {
                 activity.checkSelfPermission(manifestPermission) == PackageManager.PERMISSION_GRANTED ->
                     PermissionState.GRANTED
+
                 activity.shouldShowRequestPermissionRationale(manifestPermission) ->
                     PermissionState.REQUIRE_RATIONALE
+
                 activity.checkSelfPermission(manifestPermission) == PackageManager.PERMISSION_DENIED ->
                     PermissionState.PERMANENTLY_DENIED
+
                 else -> PermissionState.DENIED
             }
         }
@@ -140,8 +151,10 @@ class PermissionsManager {
             return when {
                 context.checkSelfPermission(manifestPermission) == PackageManager.PERMISSION_GRANTED ->
                     PermissionState.GRANTED
+
                 context.checkSelfPermission(manifestPermission) == PackageManager.PERMISSION_DENIED ->
                     PermissionState.DENIED
+
                 else -> PermissionState.UNKNOWN
             }
         }
@@ -154,10 +167,13 @@ class PermissionsManager {
             return when {
                 activity.checkSelfPermission(manifestPermission) == PackageManager.PERMISSION_GRANTED ->
                     PermissionState.GRANTED
+
                 activity.shouldShowRequestPermissionRationale(manifestPermission) ->
                     PermissionState.REQUIRE_RATIONALE
+
                 activity.checkSelfPermission(manifestPermission) == PackageManager.PERMISSION_DENIED ->
                     PermissionState.PERMANENTLY_DENIED
+
                 else -> PermissionState.DENIED
             }
         }
@@ -177,6 +193,7 @@ class PermissionsManager {
                 type in
                     listOf(
                         Permission.GPS,
+                        Permission.FILE_ACCESS,
                         Permission.NOTIFICATIONS,
                     )
     }
@@ -194,6 +211,11 @@ class PermissionsManager {
             get() =
                 permissions.first { it.type == Permission.GPS }
                     .state == PermissionState.GRANTED
+
+        val isFileAccessGranted: Boolean
+            get() =
+                permissions.first { it.type == Permission.FILE_ACCESS }
+                    .state == PermissionState.GRANTED
     }
 
     enum class Permission(val manifestPermissions: List<String>, val isMandatory: Boolean = true) {
@@ -201,6 +223,12 @@ class PermissionsManager {
             listOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION,
+            ),
+        ),
+        FILE_ACCESS(
+            listOf(
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
             ),
         ),
 

@@ -10,13 +10,14 @@ import dev.onelenyk.pprominec.presentation.components.root.RootComponent
 fun RootContainer(component: RootComponent) {
     Children(
         modifier =
-            Modifier
-                .fillMaxSize(),
+        Modifier
+            .fillMaxSize(),
         stack = component.childStack,
     ) {
         when (val child = it.instance) {
             is RootComponent.Child.BottomNav -> BottomNavContainer(child.component)
             is RootComponent.Child.Permissions -> PermissionsScreen(child.component)
+            is RootComponent.Child.MapSettings -> MapSettingsScreen(child.component)
         }
     }
     return

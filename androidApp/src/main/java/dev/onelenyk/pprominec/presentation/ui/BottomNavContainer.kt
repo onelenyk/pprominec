@@ -2,9 +2,11 @@ package dev.onelenyk.pprominec.presentation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.LocationOn
@@ -25,15 +27,33 @@ fun BottomNavContainer(component: BottomNavComponent) {
     val childStack by component.stack.subscribeAsState()
 
     AppScreen(
-        showInnerPadding = true,
-        bottomBar = {
-            Column {
+        showInnerPadding = false,
+    ) {
+        Column {
+            Box(
+                modifier = Modifier.weight(1f),
+            ) {
+                Children(
+                    stack = childStack,
+                    modifier = Modifier,
+                ) {
+                    when (val child = it.instance) {
+                        is BottomNavComponent.Child.Main -> MainScreen(child.component)
+                        is BottomNavComponent.Child.Map -> MapScreen(child.component)
+                        is BottomNavComponent.Child.Settings -> SettingsScreen(child.component)
+                    }
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+            ) {
                 HorizontalDivider()
                 Row(
-                    modifier =
-                        Modifier
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
-                            .fillMaxWidth(),
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
                     CustomNavigationBarItem(
@@ -55,17 +75,6 @@ fun BottomNavContainer(component: BottomNavComponent) {
                         label = stringResource(id = R.string.settings_tab),
                     )
                 }
-            }
-        },
-    ) {
-        Children(
-            stack = childStack,
-            modifier = Modifier,
-        ) {
-            when (val child = it.instance) {
-                is BottomNavComponent.Child.Main -> MainScreen(child.component)
-                is BottomNavComponent.Child.Map -> MapScreen(child.component)
-                is BottomNavComponent.Child.Settings -> SettingsScreen(child.component)
             }
         }
     }

@@ -1,7 +1,9 @@
 package dev.onelenyk.pprominec
 
-import MapFilesRepository
-import dev.onelenyk.pprominec.presentation.components.main.MapFileStorage
+import dev.onelenyk.pprominec.data.DataStoreManager
+import dev.onelenyk.pprominec.data.MapSettingsRepository
+import dev.onelenyk.pprominec.presentation.components.main.FileManager
+import dev.onelenyk.pprominec.presentation.components.main.FileStorage
 import dev.onelenyk.pprominec.presentation.components.permissions.PermissionsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,7 +14,9 @@ import org.koin.dsl.module
 val appModule =
     module {
         single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
-        single { MapFilesRepository(androidContext()) }
-        single { MapFileStorage(androidContext()) }
+        single { FileStorage(androidContext(), get()) }
+        single { FileManager(androidContext(), get(), get()) }
         single { PermissionsManager() }
+        single { DataStoreManager(androidContext()) }
+        single { MapSettingsRepository(get<DataStoreManager>().mapSettingsDataStore) }
     }

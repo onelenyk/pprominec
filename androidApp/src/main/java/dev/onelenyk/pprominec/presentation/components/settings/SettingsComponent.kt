@@ -18,11 +18,14 @@ interface SettingsComponent {
     fun onToggleNotifications(enabled: Boolean)
 
     fun onPermissionsClicked()
+
+    fun onMapSettingsClicked()
 }
 
 class DefaultSettingsComponent(
     componentContext: ComponentContext,
     private val openPermissions: () -> Unit,
+    private val openMapSettings: () -> Unit,
 ) : SettingsComponent, ComponentContext by componentContext {
     private val _state = MutableStateFlow(SettingsState())
     override val state: StateFlow<SettingsState> = _state.asStateFlow()
@@ -37,5 +40,9 @@ class DefaultSettingsComponent(
 
     override fun onPermissionsClicked() {
         openPermissions()
+    }
+
+    override fun onMapSettingsClicked() {
+        openMapSettings()
     }
 }

@@ -25,8 +25,10 @@ fun SettingsScreen(component: SettingsComponent) {
     AppScreen(
         toolbar = { AppToolbar(title = "Settings") },
     ) {
-        Column(modifier = Modifier
-            .padding(horizontal = 16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp),
+        ) {
             // Dark Mode Setting
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -67,6 +69,16 @@ fun SettingsScreen(component: SettingsComponent) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Manage Permissions")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Map Files Button
+            Button(
+                onClick = component::onMapSettingsClicked,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Map Settings")
             }
         }
     }
