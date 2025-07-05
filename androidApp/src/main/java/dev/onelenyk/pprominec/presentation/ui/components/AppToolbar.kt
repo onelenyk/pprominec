@@ -2,10 +2,15 @@ package dev.onelenyk.pprominec.presentation.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -32,17 +37,20 @@ import dev.onelenyk.pprominec.presentation.ui.theme.Typography
 fun AppToolbar(
     title: String,
     showBack: Boolean = false,
+    endContent: @Composable () -> Unit = { },
     onBackClick: (() -> Unit) = {},
 ) {
     Column {
         TopAppBar(
             title = {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (showBack) {
-                        IconButton(modifier = Modifier.size(48.dp), onClick = onBackClick) {
+                        IconButton(modifier = Modifier.size(24.dp), onClick = onBackClick) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
@@ -52,23 +60,30 @@ fun AppToolbar(
                     }
 
                     Text(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp),
                         text = title,
-                        textAlign = TextAlign.Center,
+                        textAlign = TextAlign.Start,
                         style = Typography.H1,
                     )
 
-                    // Spacer to balance the back button
-                    if (showBack) {
-                        Spacer(modifier = Modifier.size(48.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color.Red)
+                            .height(24.dp)
+                    ) {
+                        endContent()
                     }
                 }
             },
             colors =
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             expandedHeight = 44.dp,
+            windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp)
+                .only(WindowInsetsSides.Top),
         )
         HorizontalDivider()
     }
@@ -84,6 +99,14 @@ fun AppToolbarPreview() {
         ) {
             AppToolbar(title = "Toolbar Title")
             AppToolbar(title = "With Back Button", showBack = true, onBackClick = {})
+            AppToolbar(title = "With Back Button", showBack = true, onBackClick = {}, endContent = {
+                Text(
+                    text = "End Content",
+                    modifier = Modifier
+                        .background(Color.Red)
+                        .padding(horizontal = 8.dp),
+                )
+            })
         }
     }
 }

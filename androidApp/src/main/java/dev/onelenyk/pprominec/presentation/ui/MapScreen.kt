@@ -13,7 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -23,11 +29,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -51,6 +54,7 @@ import dev.onelenyk.pprominec.presentation.components.main.FileInfo
 import dev.onelenyk.pprominec.presentation.components.main.MapComponent
 import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
 import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.tileprovider.modules.OfflineTileProvider
 import org.osmdroid.tileprovider.tilesource.ITileSource
@@ -59,6 +63,7 @@ import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
@@ -76,8 +81,7 @@ data class MapMarker(
 
 // Enum for map modes
 enum class MapMode {
-    ONLINE,
-    OFFLINE,
+    ONLINE, OFFLINE,
 }
 
 // Data class for map state
@@ -352,43 +356,81 @@ fun MapOverlayContainer(
     onCache: (MapView) -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        // Zoom controls
-        if (mapState.showZoomControls) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                FloatingActionButton(
-                    onClick = {
-                        mapView?.controller?.zoomIn()
-                    },
-                    modifier = Modifier.padding(bottom = 8.dp),
-                ) {
-                    Text("+")
-                }
-                FloatingActionButton(
-                    onClick = {
-                        mapView?.controller?.zoomOut()
-                    },
-                ) {
-                    Text("-")
-                }
-            }
-        }
-        Column(
+        Card(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(20.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+
+                ),
+            elevation = CardDefaults.cardElevation(1.dp),
         ) {
-            Button(onClick = { onAddMarkerAtCenter }) {
-                Text("Add Marker at Center")
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { onCache(mapView) }) {
-                Text("CACHE")
+            Column(
+                modifier = Modifier.padding(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                TileSourceDropdown(
+                    currentTileSourceName = mapState.tileSource,
+                    onTileSourceSelected = { newTileSource ->
+                        onMapStateChange?.invoke(mapState.copy(tileSource = newTileSource.name()))
+                    },
+                    modifier = Modifier,
+                )
+
+                // Zoom controls as icon buttons
+                if (mapState.showZoomControls) {
+                    androidx.compose.material3.IconButton(
+                        onClick = { mapView.controller.zoomIn() },
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add, // Replace with zoom-in icon if available
+                            contentDescription = "Zoom In", tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    androidx.compose.material3.IconButton(
+                        onClick = { mapView.controller.zoomOut() },
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear, // Replace with zoom-out icon if available
+                            contentDescription = "Zoom Out",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+                // Add marker at center (icon button)
+                androidx.compose.material3.IconButton(
+                    onClick = {
+                        onAddMarkerAtCenter?.let {
+                            it(
+                                mapView.mapCenter.latitude, mapView.mapCenter.longitude
+                            )
+                        }
+                    },
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Place, // Replace with add-location icon if available
+                        contentDescription = "Add Marker",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                // Cache button (icon button)
+                androidx.compose.material3.IconButton(
+                    onClick = { onCache(mapView) },
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart, // Replace with download icon if available
+                        contentDescription = "Cache Tiles", tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
@@ -396,13 +438,13 @@ fun MapOverlayContainer(
 
 @Composable
 fun OnlineMapContainer(
+    modifier: Modifier = Modifier,
     markers: List<MapMarker> = emptyList(),
     onMarkerClick: ((MapMarker) -> Unit)? = null,
     onAddMarkerAtCenter: ((Double, Double) -> Unit)? = null,
     mapState: MapViewState = MapViewState(),
     onMapStateChange: ((MapViewState) -> Unit)? = null,
     onCache: (MapView) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -446,6 +488,34 @@ fun OnlineMapContainer(
         }
     }
 
+    val receiver = object : MapEventsReceiver {
+        override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+            // This is the single tap event handler
+            if (p != null) {
+                Toast.makeText(
+                    mapView?.context,
+                    "Map Tapped at: Lat ${p.latitude}, Lon ${p.longitude}",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            return true // We handled the event
+        }
+
+        override fun longPressHelper(p: GeoPoint): Boolean {
+            onAddMarkerAtCenter?.invoke(p.latitude, p.longitude)
+            // This is the long press event handler
+            if (p != null) {
+                Toast.makeText(
+                    mapView?.context,
+                    "Map Long Pressed at: Lat ${p.latitude}, Lon ${p.longitude}",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+            return true // We handled the event
+        }
+    }
+
+    val eventsOverlay = MapEventsOverlay(receiver)
     // Update map state when it changes
     LaunchedEffect(mapState) {
         mapView?.let { map ->
@@ -475,6 +545,16 @@ fun OnlineMapContainer(
                     position = GeoPoint(marker.latitude, marker.longitude)
                     title = marker.title
                     snippet = marker.description
+                    isDraggable = true
+                    setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
+                        override fun onMarkerDragStart(marker: Marker?) {}
+                        override fun onMarkerDrag(marker: Marker?) {}
+                        override fun onMarkerDragEnd(marker: Marker?) {
+                            marker?.let {
+                                onMapStateChange?.invoke(mapState.copy(center = it.position))
+                            }
+                        }
+                    })
 
                     marker.icon?.let { iconResId ->
                         setIcon(context.getDrawable(iconResId))
@@ -517,11 +597,12 @@ fun OnlineMapContainer(
                             locationOverlay.enableMyLocation()
                             overlays.add(locationOverlay)
                         }
-
                         isMapInitialized = true
                     }
 
                     mapView = this
+
+                    mapView?.overlays?.add(0, eventsOverlay)
                 }
             },
             modifier = Modifier
@@ -532,16 +613,6 @@ fun OnlineMapContainer(
                     map.setTileSource(TileSourceFactory.getTileSource(mapState.tileSource))
                 }
             },
-        )
-
-        TileSourceDropdown(
-            currentTileSourceName = mapState.tileSource,
-            onTileSourceSelected = { newTileSource ->
-                onMapStateChange?.invoke(mapState.copy(tileSource = newTileSource.name()))
-            },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp),
         )
 
         // Overlay controls
@@ -634,6 +705,16 @@ fun OfflineMapContainer(
                     position = GeoPoint(marker.latitude, marker.longitude)
                     title = marker.title
                     snippet = marker.description
+                    isDraggable = true
+                    setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
+                        override fun onMarkerDragStart(marker: Marker?) {}
+                        override fun onMarkerDrag(marker: Marker?) {}
+                        override fun onMarkerDragEnd(marker: Marker?) {
+                            marker?.let {
+                                onMapStateChange?.invoke(mapState.copy(center = it.position))
+                            }
+                        }
+                    })
 
                     marker.icon?.let { iconResId ->
                         setIcon(context.getDrawable(iconResId))
@@ -875,33 +956,73 @@ fun TileSourceDropdown(
     var expanded by remember { mutableStateOf(false) }
     val availableTileSources = remember { TileSourceFactory.getTileSources() }
 
-    Box(modifier = modifier) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            OutlinedTextField(
-                value = currentTileSourceName,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Tile Source") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier.menuAnchor(),
-            )
+    Card(
+        modifier = modifier
+            .wrapContentWidth(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
 
-            ExposedDropdownMenu(
+        elevation = CardDefaults.cardElevation(1.dp),
+    ) {
+        Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+            ExposedDropdownMenuBox(
                 expanded = expanded,
-                onDismissRequest = { expanded = false },
+                onExpandedChange = { expanded = !expanded },
             ) {
-                availableTileSources.forEach { tileSource ->
-                    if (tileSource.name() != "MBTiles") { // Exclude MBTiles source from online selection
-                        DropdownMenuItem(
-                            text = { Text(tileSource.name()) },
-                            onClick = {
-                                onTileSourceSelected(tileSource)
-                                expanded = false
-                            },
-                        )
+
+                Text(
+                    modifier = Modifier
+                        .menuAnchor()
+                        .wrapContentWidth()
+                        .wrapContentHeight(),
+
+                    text = "\uD83D\uDDFA\uFE0F",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+//                TextField(
+//                    modifier = Modifier
+//                        .wrapContentWidth()
+//                        .menuAnchor()
+//                        .wrapContentHeight(),
+//                    value = currentTileSourceName,
+//                    onValueChange = {},
+//                    readOnly = true,
+//                    label = {
+//                        Text(
+//                            "\uD83D\uDDFA\uFE0F",
+//                            style = MaterialTheme.typography.labelSmall
+//                        )
+//                    },
+//                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+//                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+//                    textStyle = MaterialTheme.typography.bodySmall,
+//                    colors = TextFieldDefaults.colors().copy(
+//                        focusedIndicatorColor = Color.Transparent,
+//                        unfocusedIndicatorColor = Color.Transparent,
+//                        errorIndicatorColor = Color.Transparent,
+//                        disabledIndicatorColor = Color.Transparent,
+//                    )
+//                )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    matchTextFieldWidth = false
+                ) {
+                    availableTileSources.forEach { tileSource ->
+                        if (tileSource.name() != "MBTiles") { // Exclude MBTiles source from online selection
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        tileSource.name(),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                },
+                                onClick = {
+                                    onTileSourceSelected(tileSource)
+                                    expanded = false
+                                },
+                            )
+                        }
                     }
                 }
             }
