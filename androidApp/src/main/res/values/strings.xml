@@ -18,5 +18,6 @@
     <string name="permissions_dont_allow">Don\'t Allow</string>
     <string name="allow">Allow</string>
     <string name="d">d</string>
+    <string name="hint">Empty</string>
 </resources>
 

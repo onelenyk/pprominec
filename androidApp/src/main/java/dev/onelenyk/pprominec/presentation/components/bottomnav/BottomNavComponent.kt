@@ -61,7 +61,14 @@ class DefaultBottomNavComponent(
     ): BottomNavComponent.Child =
         when (config) {
             is Config.Main -> BottomNavComponent.Child.Main(DefaultMainComponent(componentContext))
-            is Config.Settings -> BottomNavComponent.Child.Settings(DefaultSettingsComponent(componentContext, onPermissionsClicked, onMapSettingsClicked))
+            is Config.Settings -> BottomNavComponent.Child.Settings(
+                DefaultSettingsComponent(
+                    componentContext,
+                    onPermissionsClicked,
+                    onMapSettingsClicked
+                )
+            )
+
             is Config.Map -> {
                 val appContext = getKoin().get<Context>()
                 val scope = getKoin().get<CoroutineScope>()

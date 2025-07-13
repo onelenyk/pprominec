@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.presentation.ui
+package dev.onelenyk.pprominec.presentation.ui.containers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +21,11 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import dev.onelenyk.pprominec.R
 import dev.onelenyk.pprominec.presentation.components.bottomnav.BottomNavComponent
+import dev.onelenyk.pprominec.presentation.ui.AppScreen
+import dev.onelenyk.pprominec.presentation.ui.CustomNavigationBarItem
+import dev.onelenyk.pprominec.presentation.ui.screens.main.MainScreen
+import dev.onelenyk.pprominec.presentation.ui.screens.map.MapScreen
+import dev.onelenyk.pprominec.presentation.ui.screens.settings.SettingsScreen
 
 @Composable
 fun BottomNavContainer(component: BottomNavComponent) {

@@ -39,4 +39,23 @@ object GeodesyUtils {
         if (azimuth < 0) azimuth += 360.0
         return String.format(Locale.US, "%.2f", azimuth).toDouble()
     }
+
+    /**
+     * Calculate distance between two points using WGS84 geodetic model.
+     * @param lat1 Latitude of first point (degrees)
+     * @param lon1 Longitude of first point (degrees)
+     * @param lat2 Latitude of second point (degrees)
+     * @param lon2 Longitude of second point (degrees)
+     * @return Distance in kilometers
+     */
+    fun calculateDistance(
+        lat1: Double,
+        lon1: Double,
+        lat2: Double,
+        lon2: Double,
+    ): Double {
+        val result: GeodesicData = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)
+        // s12 is the distance in meters, convert to kilometers
+        return result.s12 / 1000.0
+    }
 }

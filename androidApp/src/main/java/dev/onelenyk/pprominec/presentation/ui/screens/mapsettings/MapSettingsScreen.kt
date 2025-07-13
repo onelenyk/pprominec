@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.presentation.ui
+package dev.onelenyk.pprominec.presentation.ui.screens.mapsettings
 
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -37,8 +37,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import dev.onelenyk.pprominec.presentation.components.main.MapMode
 import dev.onelenyk.pprominec.presentation.components.main.MapSettingsComponent
+import dev.onelenyk.pprominec.presentation.ui.MapMode
+import dev.onelenyk.pprominec.presentation.ui.AppScreen
 import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -120,8 +120,6 @@ dependencies {
 
     implementation("com.jakewharton.timber:timber:5.0.1")
 
-    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
-
     add("ktlint", "com.pinterest:ktlint:0.48.2")
 }
 

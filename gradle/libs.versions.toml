@@ -4,11 +4,12 @@ geographiclibJava = "1.49"
 kotlin = "2.0.0"
 compose = "1.8.3"
 compose-material3 = "1.3.2"
-androidx-activityCompose = "1.8.0"
+androidx-activityCompose = "1.8.2"
 
 decompose = "3.2.0-beta01"  # Add this line with the latest Decompose version
 kotlinx-serialization = "1.8.0"  # Add this line
 kotlinx-datetime = "0.6.1"  # Add this line
+# accompanist dependency is being removed in favor of built-in edge-to-edge support
 
 koin = "4.0.4"
 junit-jupiter-version = "5.9.3"

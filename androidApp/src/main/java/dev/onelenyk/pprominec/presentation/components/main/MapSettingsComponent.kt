@@ -5,6 +5,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnStart
 import dev.onelenyk.pprominec.data.MapSettingsRepository
 import dev.onelenyk.pprominec.presentation.coroutineScope
+import dev.onelenyk.pprominec.presentation.ui.MapMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,10 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.getKoin
 
-enum class MapMode {
-    ONLINE,
-    OFFLINE,
-}
+
 
 data class MapSettingsState(
     val mapMode: MapMode = MapMode.ONLINE,

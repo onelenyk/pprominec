@@ -1,4 +1,4 @@
-package dev.onelenyk.pprominec.presentation.ui
+package dev.onelenyk.pprominec.presentation.ui.screens.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.onelenyk.pprominec.presentation.components.settings.SettingsComponent
+import dev.onelenyk.pprominec.presentation.ui.AppScreen
 import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
 
 @Composable
