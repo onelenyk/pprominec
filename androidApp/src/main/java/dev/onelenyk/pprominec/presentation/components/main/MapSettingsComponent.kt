@@ -14,8 +14,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.getKoin
 
-
-
 data class MapSettingsState(
     val mapMode: MapMode = MapMode.ONLINE,
     val mapFiles: List<FileInfo> = emptyList(),

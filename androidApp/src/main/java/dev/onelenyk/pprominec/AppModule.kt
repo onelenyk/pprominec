@@ -4,6 +4,7 @@ import dev.onelenyk.pprominec.data.DataStoreManager
 import dev.onelenyk.pprominec.data.MapSettingsRepository
 import dev.onelenyk.pprominec.presentation.components.main.FileManager
 import dev.onelenyk.pprominec.presentation.components.main.FileStorage
+import dev.onelenyk.pprominec.presentation.components.main.UsersMarkersRepository
 import dev.onelenyk.pprominec.presentation.components.permissions.PermissionsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,4 +20,5 @@ val appModule =
         single { PermissionsManager() }
         single { DataStoreManager(androidContext()) }
         single { MapSettingsRepository(get<DataStoreManager>().mapSettingsDataStore) }
+        single { UsersMarkersRepository() }
     }

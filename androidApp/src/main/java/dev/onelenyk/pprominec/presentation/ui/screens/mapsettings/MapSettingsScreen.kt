@@ -38,8 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.onelenyk.pprominec.presentation.components.main.MapSettingsComponent
-import dev.onelenyk.pprominec.presentation.ui.MapMode
 import dev.onelenyk.pprominec.presentation.ui.AppScreen
+import dev.onelenyk.pprominec.presentation.ui.MapMode
 import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -43,8 +43,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.onelenyk.pprominec.presentation.components.permissions.PermissionsComponent
-import dev.onelenyk.pprominec.presentation.ui.AppScreen
 import dev.onelenyk.pprominec.presentation.components.permissions.PermissionsManager
+import dev.onelenyk.pprominec.presentation.ui.AppScreen
 import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
 
 @OptIn(ExperimentalMaterial3Api::class)

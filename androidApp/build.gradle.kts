@@ -117,7 +117,7 @@ dependencies {
     implementation("com.guolindev.permissionx:permissionx:1.8.1")
 
     implementation("org.osmdroid:osmdroid-android:6.1.20")
-
+    implementation("org.osmdroid:osmdroid-mapsforge:6.1.20")
     implementation("com.jakewharton.timber:timber:5.0.1")
 
     add("ktlint", "com.pinterest:ktlint:0.48.2")

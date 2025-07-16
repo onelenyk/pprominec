@@ -65,8 +65,8 @@ class DefaultBottomNavComponent(
                 DefaultSettingsComponent(
                     componentContext,
                     onPermissionsClicked,
-                    onMapSettingsClicked
-                )
+                    onMapSettingsClicked,
+                ),
             )
 
             is Config.Map -> {
@@ -76,8 +76,6 @@ class DefaultBottomNavComponent(
                 BottomNavComponent.Child.Map(
                     DefaultMapComponent(
                         componentContext = componentContext,
-                        appContext = appContext,
-                        coroutineScope = scope,
                     ),
                 )
             }

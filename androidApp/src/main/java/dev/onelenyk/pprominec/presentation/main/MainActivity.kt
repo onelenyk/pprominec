@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     SystemBarStyle.light(
                         android.graphics.Color.TRANSPARENT,
-                        android.graphics.Color.TRANSPARENT
+                        android.graphics.Color.TRANSPARENT,
                     )
                 },
                 navigationBarStyle = if (isDarkTheme) {
@@ -37,9 +37,9 @@ class MainActivity : ComponentActivity() {
                 } else {
                     SystemBarStyle.light(
                         android.graphics.Color.TRANSPARENT,
-                        android.graphics.Color.TRANSPARENT
+                        android.graphics.Color.TRANSPARENT,
                     )
-                }
+                },
             )
 
             MyApplicationTheme {

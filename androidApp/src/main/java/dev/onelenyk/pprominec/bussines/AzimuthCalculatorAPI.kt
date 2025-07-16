@@ -1,7 +1,5 @@
 package dev.onelenyk.pprominec.bussines
 
-import kotlin.math.abs
-
 data class GeoCoordinate(val lat: Double, val lon: Double)
 
 /**
@@ -12,8 +10,10 @@ object AzimuthCalculatorAPI {
     /**
      * @deprecated Use calculateTargetPosition and calculateAzimuthFromB separately instead
      */
-    @Deprecated("Use calculateTargetPosition and calculateAzimuthFromB separately instead", 
-                ReplaceWith("calculateTargetPosition(pointA, azimuthFromA, distanceKm) and calculateAzimuthFromB(pointB, targetPosition)"))
+    @Deprecated(
+        "Use calculateTargetPosition and calculateAzimuthFromB separately instead",
+        ReplaceWith("calculateTargetPosition(pointA, azimuthFromA, distanceKm) and calculateAzimuthFromB(pointB, targetPosition)"),
+    )
     fun calculate(
         pointA: GeoCoordinate,
         azimuthFromA: Double,
@@ -23,11 +23,11 @@ object AzimuthCalculatorAPI {
         val targetPosition = calculateTargetPosition(pointA, azimuthFromA, distanceKm)
         val azimuthFromB = calculateAzimuthFromB(pointB, targetPosition)
         val distanceFromB = calculateDistanceFromB(pointB, targetPosition)
-        
+
         return AzimuthCalculationResult(
             target = targetPosition,
             azimuthFromB = azimuthFromB,
-            distanceFromB = distanceFromB
+            distanceFromB = distanceFromB,
         )
     }
 
@@ -47,7 +47,7 @@ object AzimuthCalculatorAPI {
             observationPoint.lat,
             observationPoint.lon,
             azimuth,
-            distanceKm
+            distanceKm,
         )
         return GeoCoordinate(latTarget, lonTarget)
     }
@@ -66,7 +66,7 @@ object AzimuthCalculatorAPI {
             pointB.lat,
             pointB.lon,
             targetPosition.lat,
-            targetPosition.lon
+            targetPosition.lon,
         )
     }
 
@@ -84,7 +84,7 @@ object AzimuthCalculatorAPI {
             pointB.lat,
             pointB.lon,
             targetPosition.lat,
-            targetPosition.lon
+            targetPosition.lon,
         )
     }
 }

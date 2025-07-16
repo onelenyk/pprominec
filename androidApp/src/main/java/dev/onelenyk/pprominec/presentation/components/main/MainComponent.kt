@@ -1,12 +1,22 @@
 package dev.onelenyk.pprominec.presentation.components.main
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.slot.dismiss
+import com.arkivanov.decompose.value.Value
 import dev.onelenyk.pprominec.bussines.AzimuthCalculatorAPI
 import dev.onelenyk.pprominec.bussines.AzimuthInputNormalizer
 import dev.onelenyk.pprominec.bussines.GeoCoordinate
+import dev.onelenyk.pprominec.presentation.mvi.Effect
+import dev.onelenyk.pprominec.presentation.mvi.Intent
+import dev.onelenyk.pprominec.presentation.mvi.MviComponent
+import dev.onelenyk.pprominec.presentation.mvi.State
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.Serializable
 
 data class Sample(
     val name: String,
@@ -21,12 +31,10 @@ data class Sample(
 )
 
 data class InputData(
-    val latA: String = "",
-    val lonA: String = "",
+    val pointA: GeoCoordinate? = null,
     val azimuthFromA: String = "",
     val distanceKm: String = "",
-    val latB: String = "",
-    val lonB: String = "",
+    val pointB: GeoCoordinate? = null,
 )
 
 data class OutputData(
@@ -38,141 +46,214 @@ data class OutputData(
 data class MainState(
     val inputData: InputData = InputData(),
     val outputData: OutputData = OutputData(),
-)
+    val isRenderModeA: Boolean = false,
+    val isRenderModeB: Boolean = false,
+    val isRenderModeC: Boolean = false,
+) : State
 
-interface MainComponent {
-    val state: StateFlow<MainState>
-    fun onLatAChange(value: String)
-    fun onLonAChange(value: String)
-    fun onAzimuthFromAChange(value: String)
-    fun onDistanceKmChange(value: String)
-    fun onLatBChange(value: String)
-    fun onLonBChange(value: String)
-    fun loadSample(sample: Sample)
+sealed class MainIntent : Intent {
+    data class OnPointAChange(val coordinate: GeoCoordinate?) : MainIntent()
+    data class OnAzimuthFromAChange(val value: String) : MainIntent()
+    data class OnDistanceKmChange(val value: String) : MainIntent()
+    data class OnPointBChange(val coordinate: GeoCoordinate?) : MainIntent()
+    data class SetRenderModeA(val enabled: Boolean) : MainIntent()
+    data class SetRenderModeB(val enabled: Boolean) : MainIntent()
+    data class SetRenderModeC(val enabled: Boolean) : MainIntent()
+    data class LoadSample(val sample: Sample) : MainIntent()
+    data class ShowUserMarkerDialog(val requestLocationType: LocationButtonType) : MainIntent()
+    object HideUserMarkerDialog : MainIntent()
+    data class OnLocationButtonClick(val type: LocationButtonType) : MainIntent()
+    // Add more as needed
+}
+
+enum class LocationButtonType { POINT_A, POINT_B, TARGET }
+
+sealed class MainEffect : Effect {
+    data class ShowToast(val message: String) : MainEffect()
+    data class CopyToClipboard(val text: String) : MainEffect()
+    // Add more as needed
+}
+
+interface MainComponent : MviComponent<MainIntent, MainState, MainEffect> {
+    val dialog: Value<ChildSlot<DialogConfig, Dialog>>
+
+    // Remove old mutation methods
+    @Serializable
+    sealed class DialogConfig {
+        @Serializable
+        data class UserMarker(
+            val requestLocationType: LocationButtonType,
+        ) : DialogConfig()
+    }
+
+    sealed class Dialog {
+        data class UserMarkers(val usersMarkersComponent: UsersMarkersComponent) : Dialog()
+    }
 }
 
 class DefaultMainComponent(
     componentContext: ComponentContext,
 ) : MainComponent, ComponentContext by componentContext {
+    override val _state = MutableStateFlow(MainState())
+    override val _effect = Channel<MainEffect>(Channel.BUFFERED)
 
-    private val _state = MutableStateFlow(MainState())
-    override val state: StateFlow<MainState> = _state.asStateFlow()
+    private val dialogNavigation = SlotNavigation<MainComponent.DialogConfig>()
+    override val dialog: Value<ChildSlot<MainComponent.DialogConfig, MainComponent.Dialog>> =
+        childSlot(
+            source = dialogNavigation,
+            serializer = MainComponent.DialogConfig.serializer(),
+            handleBackButton = true,
+        ) { config, componentContext ->
+            when (config) {
+                is MainComponent.DialogConfig.UserMarker -> MainComponent.Dialog.UserMarkers(
+                    DefaultUsersMarkersComponent(
+                        componentContext = componentContext,
+                        mode = Mode.CHOOSE, // Pass CHOOSE mode when opened from main page
+                        onClose = { dialogNavigation.dismiss() },
+                        onSelectMarker = { marker ->
+                            when (config.requestLocationType) {
+                                LocationButtonType.POINT_A -> {
+                                    updateState(
+                                        _state.value.copy(
+                                            inputData = _state.value.inputData.copy(pointA = marker.geo()),
+                                        ),
+                                    )
+                                    updateCalculations()
+                                }
 
-    override fun onLatAChange(value: String) {
-        _state.value = _state.value.copy(
-            inputData = _state.value.inputData.copy(latA = value)
-        )
-        updateCalculations()
-    }
+                                LocationButtonType.POINT_B -> {
+                                    updateState(
+                                        _state.value.copy(
+                                            inputData = _state.value.inputData.copy(pointB = marker.geo()),
+                                        ),
+                                    )
+                                    updateCalculations()
+                                }
 
-    override fun onLonAChange(value: String) {
-        _state.value = _state.value.copy(
-            inputData = _state.value.inputData.copy(lonA = value)
-        )
-        updateCalculations()
-    }
+                                LocationButtonType.TARGET -> TODO()
+                            }
+                        },
+                    ),
+                )
+            }
+        }
 
-    override fun onAzimuthFromAChange(value: String) {
-        _state.value = _state.value.copy(
-            inputData = _state.value.inputData.copy(azimuthFromA = value)
-        )
-        updateCalculations()
-    }
+    override suspend fun processIntent(intent: MainIntent) {
+        when (intent) {
+            is MainIntent.OnPointAChange -> {
+                updateState(_state.value.copy(inputData = _state.value.inputData.copy(pointA = intent.coordinate)))
+                updateCalculations()
+            }
 
-    override fun onDistanceKmChange(value: String) {
-        _state.value = _state.value.copy(
-            inputData = _state.value.inputData.copy(distanceKm = value)
-        )
-        updateCalculations()
-    }
+            is MainIntent.OnAzimuthFromAChange -> {
+                updateState(_state.value.copy(inputData = _state.value.inputData.copy(azimuthFromA = intent.value)))
+                updateCalculations()
+            }
 
-    override fun onLatBChange(value: String) {
-        _state.value = _state.value.copy(
-            inputData = _state.value.inputData.copy(latB = value)
-        )
-        updateCalculations()
-    }
+            is MainIntent.OnDistanceKmChange -> {
+                updateState(_state.value.copy(inputData = _state.value.inputData.copy(distanceKm = intent.value)))
+                updateCalculations()
+            }
 
-    override fun onLonBChange(value: String) {
-        _state.value = _state.value.copy(
-            inputData = _state.value.inputData.copy(lonB = value)
-        )
-        updateCalculations()
+            is MainIntent.OnPointBChange -> {
+                updateState(_state.value.copy(inputData = _state.value.inputData.copy(pointB = intent.coordinate)))
+                updateCalculations()
+            }
+
+            is MainIntent.SetRenderModeA -> {
+                updateState(_state.value.copy(isRenderModeA = intent.enabled))
+            }
+
+            is MainIntent.SetRenderModeB -> {
+                updateState(_state.value.copy(isRenderModeB = intent.enabled))
+            }
+
+            is MainIntent.SetRenderModeC -> {
+                updateState(_state.value.copy(isRenderModeC = intent.enabled))
+            }
+
+            is MainIntent.LoadSample -> {
+                updateState(
+                    _state.value.copy(
+                        inputData = InputData(
+                            pointA = intent.sample.pointA,
+                            azimuthFromA = intent.sample.azimuthFromA.toString(),
+                            distanceKm = intent.sample.distanceKm.toString(),
+                            pointB = intent.sample.pointB,
+                        ),
+                    ),
+                )
+                updateCalculations()
+            }
+
+            is MainIntent.ShowUserMarkerDialog -> {
+                dialogNavigation.activate(MainComponent.DialogConfig.UserMarker(intent.requestLocationType))
+            }
+
+            is MainIntent.HideUserMarkerDialog -> {
+                dialogNavigation.dismiss()
+            }
+
+            is MainIntent.OnLocationButtonClick -> {
+                // For now, just emit a toast effect for demonstration
+                val label = when (intent.type) {
+                    LocationButtonType.POINT_A -> "Location A"
+                    LocationButtonType.POINT_B -> "Location B"
+                    LocationButtonType.TARGET -> "Target"
+                }
+
+                processIntent(MainIntent.ShowUserMarkerDialog(intent.type))
+                //  _effect.send(MainEffect.ShowToast("Location button clicked: $label"))
+            }
+        }
     }
 
     private fun updateCalculations() {
         val currentState = _state.value
         val input = currentState.inputData
-
-        // Check for empty or invalid input for Point A
-        if (input.latA.isBlank() || input.lonA.isBlank() || input.azimuthFromA.isBlank() || input.distanceKm.isBlank()) {
-            _state.value = currentState.copy(outputData = OutputData())
+        if (input.pointA == null || input.azimuthFromA.isBlank() || input.distanceKm.isBlank()) {
+            updateState(currentState.copy(outputData = OutputData()))
             return
         }
-
-        val pointA = AzimuthInputNormalizer.parseCoordinate(input.latA, input.lonA)
+        val pointA = input.pointA
         val azimuth = AzimuthInputNormalizer.parseAzimuth(input.azimuthFromA)
         val distance = AzimuthInputNormalizer.parseDistance(input.distanceKm)
-
         if (pointA == null || azimuth == null || distance == null) {
-            _state.value = currentState.copy(outputData = OutputData())
+            updateState(currentState.copy(outputData = OutputData()))
             return
         }
-
-        // Step 1: Calculate target position from Point A data
         val targetPosition = try {
             AzimuthCalculatorAPI.calculateTargetPosition(pointA, azimuth, distance)
         } catch (e: Exception) {
             null
         }
-
         if (targetPosition == null) {
-            _state.value = currentState.copy(outputData = OutputData())
+            updateState(currentState.copy(outputData = OutputData()))
             return
         }
-
-        // Step 2: Calculate azimuth and distance from Point B only if target is valid and Point B input is valid
         var azimuthFromB: Double?
         var distanceFromB: Double?
-        if (input.latB.isBlank() || input.lonB.isBlank()) {
+        if (input.pointB == null) {
             azimuthFromB = null
             distanceFromB = null
         } else {
-            val pointB = AzimuthInputNormalizer.parseCoordinate(input.latB, input.lonB)
-            if (pointB == null) {
+            val pointB = input.pointB
+            try {
+                azimuthFromB = AzimuthCalculatorAPI.calculateAzimuthFromB(pointB, targetPosition)
+                distanceFromB = AzimuthCalculatorAPI.calculateDistanceFromB(pointB, targetPosition)
+            } catch (e: Exception) {
                 azimuthFromB = null
                 distanceFromB = null
-            } else {
-                try {
-                    azimuthFromB = AzimuthCalculatorAPI.calculateAzimuthFromB(pointB, targetPosition)
-                    distanceFromB = AzimuthCalculatorAPI.calculateDistanceFromB(pointB, targetPosition)
-                } catch (e: Exception) {
-                    azimuthFromB = null
-                    distanceFromB = null
-                }
             }
         }
-
-        _state.value = currentState.copy(
-            outputData = OutputData(
-                targetPosition = targetPosition,
-                azimuthFromB = azimuthFromB,
-                distanceFromB = distanceFromB
-            )
+        updateState(
+            currentState.copy(
+                outputData = OutputData(
+                    targetPosition = targetPosition,
+                    azimuthFromB = azimuthFromB,
+                    distanceFromB = distanceFromB,
+                ),
+            ),
         )
-    }
-
-    override fun loadSample(sample: Sample) {
-        _state.value = _state.value.copy(
-            inputData = InputData(
-                latA = sample.pointA.lat.toString(),
-                lonA = sample.pointA.lon.toString(),
-                azimuthFromA = sample.azimuthFromA.toString(),
-                distanceKm = sample.distanceKm.toString(),
-                latB = sample.pointB.lat.toString(),
-                lonB = sample.pointB.lon.toString(),
-            )
-        )
-        updateCalculations()
     }
 }

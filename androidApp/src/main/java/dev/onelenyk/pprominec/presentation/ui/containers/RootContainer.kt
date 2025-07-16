@@ -5,9 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import dev.onelenyk.pprominec.presentation.components.root.RootComponent
-import dev.onelenyk.pprominec.presentation.ui.screens.permissions.PermissionsScreen
 import dev.onelenyk.pprominec.presentation.ui.screens.mapsettings.MapSettingsScreen
-import dev.onelenyk.pprominec.presentation.ui.containers.BottomNavContainer
+import dev.onelenyk.pprominec.presentation.ui.screens.permissions.PermissionsScreen
 
 @Composable
 fun RootContainer(component: RootComponent) {
@@ -23,5 +22,4 @@ fun RootContainer(component: RootComponent) {
             is RootComponent.Child.MapSettings -> MapSettingsScreen(child.component)
         }
     }
-    return
 }

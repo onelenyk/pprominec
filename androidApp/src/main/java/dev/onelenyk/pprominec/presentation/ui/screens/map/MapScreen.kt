@@ -1,5 +1,7 @@
 package dev.onelenyk.pprominec.presentation.ui.screens.map
 
+import android.content.Context
+import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
@@ -7,7 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -16,18 +18,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,34 +48,37 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import dev.onelenyk.pprominec.R
+import dev.onelenyk.pprominec.presentation.components.main.FileInfo
 import dev.onelenyk.pprominec.presentation.components.main.MapComponent
 import dev.onelenyk.pprominec.presentation.components.main.MapEffect
 import dev.onelenyk.pprominec.presentation.components.main.MapIntent
 import dev.onelenyk.pprominec.presentation.components.main.MapState
 import dev.onelenyk.pprominec.presentation.mvi.MviScreen
 import dev.onelenyk.pprominec.presentation.ui.AppScreen
+import dev.onelenyk.pprominec.presentation.ui.MapMarker
 import dev.onelenyk.pprominec.presentation.ui.MapMode
 import dev.onelenyk.pprominec.presentation.ui.MapViewState
 import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.tileprovider.cachemanager.CacheManager
-import org.osmdroid.tileprovider.modules.OfflineTileProvider
 import org.osmdroid.tileprovider.tilesource.ITileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.tileprovider.util.SimpleRegisterReceiver
-import org.osmdroid.util.BoundingBox
+import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
-import java.io.File
 
 // ============================================================================
 // MAP BUILDER - Shared functionality for both online and offline maps
@@ -84,7 +92,7 @@ fun rememberMapBuilder(): MapBuilder {
 class MapBuilder {
     private var locationOverlay: MyLocationNewOverlay? = null
 
-    fun configureOSMDroid(context: android.content.Context) {
+    fun configureOSMDroid(context: Context) {
         Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", 0))
         Configuration.getInstance().apply {
             tileFileSystemCacheMaxBytes = 50L * 1024L * 1024L // 50MB
@@ -93,7 +101,7 @@ class MapBuilder {
         }
     }
 
-    fun getCurrentLocation(): org.osmdroid.util.GeoPoint? {
+    fun getCurrentLocation(): GeoPoint? {
         return locationOverlay?.myLocation
     }
 
@@ -120,10 +128,10 @@ class MapBuilder {
     }
 
     fun createMapView(
-        context: android.content.Context,
+        context: Context,
         state: MapViewState,
         isMapInitialized: Boolean,
-        onMapCreated: (MapView) -> Unit
+        onMapCreated: (MapView) -> Unit,
     ): MapView {
         return MapView(context).apply {
             if (!isMapInitialized) {
@@ -131,7 +139,7 @@ class MapBuilder {
                 controller.setZoom(state.zoomLevel)
                 controller.setCenter(state.center)
 
-                setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                setLayerType(View.LAYER_TYPE_HARDWARE, null)
                 setWillNotDraw(false)
                 clipToOutline = true
                 clipChildren = true
@@ -168,9 +176,9 @@ class MapBuilder {
 
     fun updateMarkers(
         map: MapView,
-        markers: List<dev.onelenyk.pprominec.presentation.ui.MapMarker>,
+        markers: List<MapMarker>,
         dispatch: (MapIntent) -> Unit,
-        context: android.content.Context
+        context: Context,
     ) {
         val existingMarkers = map.overlays.filterIsInstance<Marker>()
         map.overlays.removeAll(existingMarkers)
@@ -182,22 +190,22 @@ class MapBuilder {
                 snippet = marker.description
                 isDraggable = true
 
+                id = marker.id
                 setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
                     override fun onMarkerDragStart(marker: Marker?) {}
                     override fun onMarkerDrag(marker: Marker?) {}
                     override fun onMarkerDragEnd(marker: Marker?) {
                         marker?.let {
-                            dispatch(
-                                MapIntent.MapCenterChanged(
-                                    it.position.latitude, it.position.longitude
-                                )
-                            )
+                            val mapMarker = markers.firstOrNull { m -> m.id == marker.id }
+                            if (mapMarker != null) {
+                                dispatch(MapIntent.UpdateMarkerPosition(mapMarker, marker))
+                            }
                         }
                     }
                 })
 
-                marker.icon?.let { iconResId ->
-                    setIcon(context.getDrawable(iconResId))
+                marker.iconResId?.let {
+                    setIcon(context.getDrawable(it))
                 }
 
                 setOnMarkerClickListener { _, _ ->
@@ -223,9 +231,10 @@ class MapBuilder {
 @Composable
 fun MapScreen(component: MapComponent) {
     val context = LocalContext.current
-
-    MviScreen(
-        component = component, onEffect = { effect ->
+    val dialogSlot by component.dialog.subscribeAsState()
+    // Handle effects using Channel
+    LaunchedEffect(Unit) {
+        component.effect.collectLatest { effect ->
             when (effect) {
                 is MapEffect.ShowToast -> {
                     Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
@@ -233,27 +242,53 @@ fun MapScreen(component: MapComponent) {
 
                 is MapEffect.NavigateToMarkerDetails -> {
                     Toast.makeText(
-                        context, "Navigate to: ${effect.marker.title}", Toast.LENGTH_SHORT
-                    ).show()
-                }
-
-                is MapEffect.StartCaching -> {
-                    Toast.makeText(
-                        context, "Starting cache for: ${effect.boundingBox}", Toast.LENGTH_SHORT
-                    ).show()
-                }
-
-                is MapEffect.CacheCompleted -> {
-                    Toast.makeText(
-                        context, "Cache completed: ${effect.tileCount} tiles", Toast.LENGTH_SHORT
+                        context,
+                        "Navigate to: ${effect.marker.title}",
+                        Toast.LENGTH_SHORT,
                     ).show()
                 }
 
                 is MapEffect.ErrorOccurred -> {
                     Toast.makeText(context, "Error: ${effect.message}", Toast.LENGTH_LONG).show()
                 }
+
+                is MapEffect.StartCaching -> {
+                    Toast.makeText(
+                        context,
+                        "Starting cache for: ${effect.boundingBox}",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+
+                is MapEffect.CacheCompleted -> {
+                }
+
+                is MapEffect.CacheError -> {
+                    Toast.makeText(context, "Cache Error: ${effect.message}", Toast.LENGTH_LONG)
+                        .show()
+                }
+
+                MapEffect.CacheStarted -> {
+                    Toast.makeText(context, "Cache started", Toast.LENGTH_SHORT).show()
+                }
+
+                is MapEffect.ShowCacheUsage -> {
+                    Toast.makeText(
+                        context,
+                        "Cache usage: ${effect.sizeMB} MB",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+
+                else -> Unit
             }
-        }) { state, dispatch ->
+        }
+    }
+
+    MviScreen(
+        component = component,
+        onEffect = {},
+    ) { state, dispatch ->
         AppScreen(
             toolbar = { AppToolbar(title = "Map") },
             content = {
@@ -261,7 +296,16 @@ fun MapScreen(component: MapComponent) {
                     modifier = Modifier,
                     state = state,
                     dispatch = dispatch,
+                    component = component,
                 )
+                // Render dialog if present
+                dialogSlot.child?.instance?.also {
+                    when (it) {
+                        is MapComponent.Dialog.UserMarkers -> {
+                            UsersMarkersDialog(component = it.usersMarkersComponent)
+                        }
+                    }
+                }
             },
         )
     }
@@ -270,6 +314,7 @@ fun MapScreen(component: MapComponent) {
 @Composable
 fun MapContent(
     modifier: Modifier = Modifier,
+    component: MapComponent,
     state: MapState,
     dispatch: (MapIntent) -> Unit,
 ) {
@@ -281,13 +326,13 @@ fun MapContent(
                 .fillMaxSize()
                 .clipToBounds(),
         ) {
-            // Map Container based on mode
             when (state.mapViewState.mapMode) {
                 MapMode.ONLINE -> {
                     OnlineMapContainer(
+                        component = component,
                         state = state,
                         dispatch = dispatch,
-                    //    onCache = { downloadRegionForOfflineUse(it, activity) },
+                        //    onCache = { downloadRegionForOfflineUse(it, activity) },
                     )
                 }
 
@@ -298,12 +343,6 @@ fun MapContent(
                     )
                 }
             }
-
-            // Overlay UI Elements
-            MapOverlayUI(
-                state = state,
-                dispatch = dispatch,
-            )
         }
     }
 }
@@ -315,6 +354,7 @@ fun MapContent(
 @Composable
 private fun MapContainer(
     modifier: Modifier = Modifier,
+    component: MapComponent? = null,
     state: MapState,
     dispatch: (MapIntent) -> Unit,
     mapBuilder: MapBuilder,
@@ -388,7 +428,8 @@ private fun MapContainer(
                         isMapInitialized = true
                         onMapReady(map)
                         map.overlays.add(0, eventsOverlay)
-                    })
+                    },
+                )
             },
             modifier = Modifier
                 .fillMaxSize()
@@ -408,32 +449,10 @@ private fun MapContainer(
 // ============================================================================
 
 @Composable
-private fun MapOverlayUI(
-    state: MapState,
-    dispatch: (MapIntent) -> Unit,
-) {
-    Box() {
-        // Crosshair overlay
-        if (state.mapViewState.showCrosshair) {
-            CrosshairOverlay()
-        }
-
-        // Markers dialog
-        UsersMarkersDialog(
-            isVisible = state.showMarkersDialog,
-            onDismiss = { dispatch(MapIntent.HideMarkersDialog) },
-            markers = state.markers,
-            onMarkerEdit = { marker -> dispatch(MapIntent.AddMarker(marker)) },
-            onMarkerDelete = { markerId -> dispatch(MapIntent.RemoveMarker(markerId)) },
-            onMarkerAdd = { /* Handle marker add */ })
-    }
-}
-
-@Composable
 private fun CrosshairOverlay() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         // Horizontal line
         Box(
@@ -442,8 +461,8 @@ private fun CrosshairOverlay() {
                 .height(2.dp)
                 .background(
                     color = Color.Red,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(1.dp)
-                )
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(1.dp),
+                ),
         )
 
         // Vertical line
@@ -453,8 +472,8 @@ private fun CrosshairOverlay() {
                 .height(40.dp)
                 .background(
                     color = Color.Red,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(1.dp)
-                )
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(1.dp),
+                ),
         )
     }
 }
@@ -466,6 +485,7 @@ private fun CrosshairOverlay() {
 @Composable
 fun OnlineMapContainer(
     modifier: Modifier = Modifier,
+    component: MapComponent,
     state: MapState,
     dispatch: (MapIntent) -> Unit,
 ) {
@@ -473,6 +493,7 @@ fun OnlineMapContainer(
 
     MapContainer(
         modifier = modifier,
+        component = component,
         state = state,
         dispatch = dispatch,
         mapBuilder = mapBuilder,
@@ -482,12 +503,14 @@ fun OnlineMapContainer(
         },
         overlayContent = { mapView, mapBuilder ->
             MapOverlayContainer(
+                component = component,
                 mapView = mapView,
                 state = state,
                 dispatch = dispatch,
                 mapBuilder = mapBuilder,
             )
-        })
+        },
+    )
 }
 
 @Composable
@@ -499,20 +522,27 @@ fun OfflineMapContainer(
 
     MapContainer(
         modifier = Modifier.background(Color.Green), // Offline indicator
-        state = state, dispatch = dispatch, mapBuilder = mapBuilder, onMapReady = { mapView ->
+        state = state,
+        dispatch = dispatch,
+        mapBuilder = mapBuilder,
+        onMapReady = { mapView ->
             // Offline-specific setup
             mapView.setTileSource(TileSourceFactory.MAPNIK)
+            mapView.setUseDataConnection(false)
 
-            // Load MBTiles if available
-            state.selectedMapFile?.let { fileInfo ->
-                if (fileInfo.type.extension == "mbtiles") {
-                    val mbtilesFile = File(fileInfo.path)
-                    if (mbtilesFile.exists()) {
-                        mapView.setupOfflineMap(mbtilesFile)
-                    }
-                }
-            }
-        }, overlayContent = { mapView, mapBuilder ->
+            mapView.setupOfflineMapFromSampleLogic()
+
+            /*            // Load MBTiles if available
+                        state.selectedMapFile?.let { fileInfo ->
+                            //   if (fileInfo.type.extension == "mbtiles") {
+                            val mbtilesFile = File(fileInfo.path)
+                            if (mbtilesFile.exists()) {
+                                mapView.setupOfflineMapFromSampleLogic()
+                            }
+                            //   }
+                        }*/
+        },
+        overlayContent = { mapView, mapBuilder ->
             // Offline mode indicator
             OfflineModeIndicator(
                 selectedFile = state.selectedMapFile,
@@ -529,14 +559,14 @@ fun OfflineMapContainer(
                 dispatch = dispatch,
                 mapBuilder = mapBuilder,
             )
-        })
+        },
+    )
 }
-
 
 @Composable
 private fun OfflineModeIndicator(
     mapMode: MapMode,
-    selectedFile: dev.onelenyk.pprominec.presentation.components.main.FileInfo?,
+    selectedFile: FileInfo?,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -565,20 +595,185 @@ private fun OfflineModeIndicator(
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
-
         }
     }
 }
 
 @Composable
+fun MapMenuContainer(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        ),
+        elevation = CardDefaults.cardElevation(6.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            content = content,
+        )
+    }
+}
+
+@Composable
+fun MapMenuItem(
+    iconResId: Int,
+    description: String,
+    onClick: () -> Unit,
+    tint: Color = Color.Black,
+    containerColor: Color = Color.Transparent,
+    enabled: Boolean = true,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.size(36.dp),
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = containerColor,
+        ),
+    ) {
+        Icon(
+            painter = painterResource(id = iconResId),
+            contentDescription = description,
+            tint = if (enabled) tint else Color.Gray,
+        )
+    }
+}
+
+@Composable
 fun MapOverlayContainer(
+    component: MapComponent? = null,
     mapView: MapView,
     state: MapState,
     dispatch: (MapIntent) -> Unit,
     mapBuilder: MapBuilder,
 ) {
+    val coroutineScope = rememberCoroutineScope()
     Box(modifier = Modifier.fillMaxSize()) {
-        // Offline mode indicator
+        // Main Map Menu
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 20.dp, bottom = 60.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            MapMenuContainer(
+                modifier = Modifier,
+            ) {
+                TileSourceDropdown(
+                    modifier = Modifier,
+                    onTileSourceSelected = { dispatch(MapIntent.TileSourceChanged(it.name())) },
+                    currentTileSourceName = state.mapViewState.tileSource,
+                )
+                // Add more items as needed (e.g., my location, tile source, etc.)
+            }
+
+            MapMenuContainer(
+                modifier = Modifier,
+            ) {
+                MapMenuItem(
+                    iconResId = R.drawable.rounded_add_24,
+                    description = "Zoom In",
+                    onClick = { mapView.controller.zoomIn() },
+                )
+                MapMenuItem(
+                    iconResId = R.drawable.rounded_remove_24,
+                    description = "Zoom Out",
+                    onClick = { mapView.controller.zoomOut() },
+                )
+                MapMenuItem(
+                    iconResId = R.drawable.outline_my_location_24,
+                    description = "Move to My Location",
+                    onClick = {
+                        mapBuilder.moveToCurrentLocation(mapView)
+                    },
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+
+                // Add more items as needed (e.g., my location, tile source, etc.)
+            }
+            MapMenuContainer(
+                modifier = Modifier,
+            ) {
+                MapMenuItem(
+                    iconResId = R.drawable.outline_cross_24,
+                    description = "Enable crosshair",
+                    onClick = {
+                        dispatch(MapIntent.ToggleCrosshair(!state.mapViewState.showCrosshair))
+                    },
+                )
+
+                MapMenuItem(
+                    iconResId = R.drawable.outline_add_location_alt_24,
+                    description = "Add Marker at Center",
+                    onClick = {
+                        val center = mapView.mapCenter
+                        dispatch(MapIntent.AddMarkerAtPosition(center.latitude, center.longitude))
+                    },
+                )
+
+                MapMenuItem(
+                    iconResId = R.drawable.outline_list_alt_24,
+                    description = "Open Marker list",
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    onClick = {
+                        dispatch(MapIntent.ShowMarkersDialog)
+                    },
+                )
+
+                // Add more items as needed (e.g., my location, tile source, etc.)
+            }
+
+            MapMenuContainer(
+                modifier = Modifier,
+            ) {
+                // Cache mode controls, progress, overlays, etc.
+                CacheModeControls(
+                    isCacheModeEnabled = state.isCacheModeEnabled,
+                    onToggleCacheMode = {
+                        mapView.mapCenter
+                        if (state.isCacheModeEnabled) {
+                            dispatch(MapIntent.DisableCacheMode)
+                        } else {
+                            dispatch(
+                                MapIntent.EnableCacheMode(GeoPoint(mapView.mapCenter)),
+                            )
+                        }
+                    },
+                    onStartCache = {
+                        component?.let {
+                            coroutineScope.launch {
+                                it.startCacheRegion(12, 17, mapView)
+                            }
+                        }
+                    },
+                    canStartCache = state.cacheRegionPoints.size == 4,
+                )
+            }
+        }
+
+        // Show progress indicator when caching is in progress
+        if (state.isCachingInProgress) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = Color.White)
+            }
+        }
+
+        // Crosshair overlay
+        if (state.mapViewState.showCrosshair) {
+            CrosshairOverlay()
+        }
+
         OfflineModeIndicator(
             selectedFile = state.selectedMapFile,
             mapMode = state.mapViewState.mapMode,
@@ -586,235 +781,110 @@ fun MapOverlayContainer(
                 .align(Alignment.TopEnd)
                 .padding(16.dp),
         )
-
-        // My Location button - separate overlay block above the main controls
-        Card(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-            ),
-            elevation = CardDefaults.cardElevation(1.dp),
-        ) {
-            androidx.compose.material3.IconButton(
-                onClick = {
-                    mapBuilder.moveToCurrentLocation(mapView)
-                },
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Place,
-                    contentDescription = "Move to My Location",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-        // Main controls card
-        Card(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(20.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-            ),
-            elevation = CardDefaults.cardElevation(1.dp),
-        ) {
-            Column(
-                modifier = Modifier.padding(10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                TileSourceDropdown(
-                    currentTileSourceName = state.mapViewState.tileSource,
-                    onTileSourceSelected = { newTileSource ->
-                        dispatch(MapIntent.TileSourceChanged(newTileSource.name()))
-                    },
-                    modifier = Modifier,
-                )
-
-                // Zoom controls as icon buttons
-                if (state.mapViewState.showZoomControls) {
-                    androidx.compose.material3.IconButton(
-                        onClick = {
-                            mapView.controller.zoomIn()
-                            dispatch(MapIntent.ZoomLevelChanged(mapView.zoomLevelDouble))
-                        },
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Zoom In",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    androidx.compose.material3.IconButton(
-                        onClick = {
-                            mapView.controller.zoomOut()
-                            dispatch(MapIntent.ZoomLevelChanged(mapView.zoomLevelDouble))
-                        },
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Zoom Out",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Show markers dialog button
-                androidx.compose.material3.IconButton(
-                    onClick = {
-                        dispatch(MapIntent.ShowMarkersDialog)
-                    },
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Show Markers",
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Toggle crosshair button
-                androidx.compose.material3.IconButton(
-                    onClick = {
-                        dispatch(MapIntent.ToggleCrosshair(!state.mapViewState.showCrosshair))
-                    },
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    CrosshairIcon(
-                        isEnabled = state.mapViewState.showCrosshair,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Add marker at center button
-                androidx.compose.material3.IconButton(
-                    onClick = {
-                        dispatch(
-                            MapIntent.AddMarkerAtPosition(
-                                mapView.mapCenter.latitude, mapView.mapCenter.longitude
-                            )
-                        )
-                    },
-                    modifier = Modifier.size(36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Place,
-                        contentDescription = "Add Marker at Center",
-                        tint = Color.Red
-                    )
-                }
-            }
-        }
     }
-
 }
 
-// Helper functions (same as in original MapScreen)
-fun MapView.setupOfflineMap(mbTilesFile: File) {
+/**
+ * Extension function for MapView that directly translates the logic from
+ * the official osmdroid Java sample 'SampleOfflineOnly.java'.
+ */
+private fun MapView.setupOfflineMapFromSampleLogic() {
     val context = this.context
+    // 1. Force the map to not use the network connection.
+    this.setUseDataConnection(false)
 
-    if (!mbTilesFile.exists()) {
-        Toast.makeText(
-            context,
-            "Map file not found: ${mbTilesFile.absolutePath}",
-            Toast.LENGTH_LONG,
-        ).show()
-        return
-    }
+    // 2. Set a custom image for tiles that are not found in the archive.
+    // Note: You must have a drawable named 'notfound.png' in your res/drawable folder.
+    // If you don't have one, you can comment out the following line.
+    // this.tileProvider.setTileLoadFailureImage(ContextCompat.getDrawable(context, R.drawable.notfound))
 
-    try {
-        val tileProvider =
-            OfflineTileProvider(SimpleRegisterReceiver(context), arrayOf(mbTilesFile))
-        this.tileProvider = tileProvider
+    // 3. Get the osmdroid base path (usually /sdcard/osmdroid/)
+    val osmdroidDir = Configuration.getInstance().osmdroidBasePath
 
-        val tileSource = tileProvider.tileSource
-
-        if (tileSource != null) {
-            this.setTileSource(tileSource)
-        } else {
-            Toast.makeText(
-                context,
-                "Could not find a tile source in the archive.",
-                Toast.LENGTH_SHORT,
-            ).show()
-            this.setTileSource(TileSourceFactory.DEFAULT_TILE_SOURCE)
-        }
-
-        this.invalidate()
-        Toast.makeText(
-            context,
-            "Successfully loaded offline map: '$mbTilesFile'",
-            Toast.LENGTH_SHORT,
-        ).show()
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(context, "Error loading offline map: ${e.message}", Toast.LENGTH_LONG).show()
-    }
-}
-
-fun downloadRegionForOfflineUse(mapView: MapView, activity: ComponentActivity) {
-    val lvivBoundingBox = BoundingBox(49.87, 24.08, 49.80, 23.95)
-    val cacheManager = CacheManager(mapView)
-    val zoomMin = 12
-    val zoomMax = 17
-
-    Toast.makeText(activity, "Starting download for Lviv...", Toast.LENGTH_SHORT).show()
-    cacheManager.downloadAreaAsync(activity, lvivBoundingBox, zoomMin, zoomMax)
-}
-
-@Composable
-fun MapModeChip(
-    mapMode: MapMode,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+    this.setTileSource(
+        XYTileSource(
+            "Hikebikemap",
+            7,
+            17,
+            256,
+            ".png",
+            arrayOf(),
         ),
-        elevation = CardDefaults.cardElevation(4.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(
-                imageVector = when (mapMode) {
-                    MapMode.ONLINE -> Icons.Default.Star
-                    MapMode.OFFLINE -> Icons.Default.Warning
-                },
-                contentDescription = "Map mode icon",
-                modifier = Modifier.size(16.dp),
-                tint = when (mapMode) {
-                    MapMode.ONLINE -> MaterialTheme.colorScheme.primary
-                    MapMode.OFFLINE -> MaterialTheme.colorScheme.secondary
-                },
-            )
-            Text(
-                text = when (mapMode) {
-                    MapMode.ONLINE -> "Online"
-                    MapMode.OFFLINE -> "Offline"
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+    )
+
+    /*    if (osmdroidDir.exists()) {
+            val list = osmdroidDir.listFiles()
+            if (list != null) {
+                for (file in list) {
+                    if (file.isDirectory) continue
+
+                    val fileName = file.name.lowercase()
+                    if (!fileName.contains(".")) continue
+
+                    val fileExtension = fileName.substringAfterLast('.', "")
+                    if (fileExtension.isEmpty()) continue
+
+                    // 4. Check if osmdroid has a driver for this file type (e.g., zip, mbtiles, sqlite)
+                    if (ArchiveFileFactory.isFileExtensionRegistered(fileExtension)) {
+                        try {
+                            // --- Found a compatible file, now set it up ---
+
+                            // 5. Create an OfflineTileProvider using the found file.
+                            val offlineTileProvider = OfflineTileProvider(
+                                SimpleRegisterReceiver(context),
+                                arrayOf(file)
+                            )
+
+                            // 6. Set this as the map's exclusive tile provider.
+                            this.tileProvider = offlineTileProvider
+
+                            // 7. Discover the tile source name from within the archive.
+                            // val sourceName = offlineTileProvider.archives.firstOrNull()?.tileSources?.firstOrNull()
+
+                            this.setTileSource(
+                                XYTileSource(
+                                    "Hikebikemap",
+                                    7,
+                                    17,
+                                    offlineTileProvider.tileSource.tileSizePixels,
+                                    ".png",
+                                    arrayOf()
+                                )
+                            )
+
+                     *//*       if (sourceName != null) {
+                            // If a name is found, create a specific FileBasedTileSource.
+                            this.setTileSource(FileBasedTileSource.getSource(sourceName))
+                        } else {
+                            // Otherwise, fall back to the default.
+                            this.setTileSource(TileSourceFactory.DEFAULT_TILE_SOURCE)
+                        }
+*//*
+                        Toast.makeText(
+                            context,
+                            "Using offline map: ${file.name}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        this.invalidate()
+
+                        // 8. IMPORTANT: Exit the loop and function after loading the first found map.
+                        return
+                    } catch (ex: Exception) {
+                        ex.printStackTrace()
+                    }
+                }
+            }
         }
-    }
+        // If the loop completes without finding a valid file
+        Toast.makeText(
+            context,
+            "${osmdroidDir.absolutePath} did not have any files I can open!",
+            Toast.LENGTH_LONG
+        ).show()
+    } else {
+        Toast.makeText(context, "${osmdroidDir.absolutePath} dir not found!", Toast.LENGTH_SHORT)
+            .show()
+    }*/
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -843,13 +913,13 @@ fun TileSourceDropdown(
                         .wrapContentWidth()
                         .wrapContentHeight(),
                     text = "\uD83D\uDDFA\uFE0F",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
                 )
 
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
-                    matchTextFieldWidth = false
+                    matchTextFieldWidth = false,
                 ) {
                     availableTileSources.forEach { tileSource ->
                         if (tileSource.name() != "MBTiles") {
@@ -857,7 +927,7 @@ fun TileSourceDropdown(
                                 text = {
                                     Text(
                                         tileSource.name(),
-                                        style = MaterialTheme.typography.bodySmall
+                                        style = MaterialTheme.typography.bodySmall,
                                     )
                                 },
                                 onClick = {
@@ -882,7 +952,7 @@ fun CrosshairIcon(
 
     Box(
         modifier = modifier,
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         // Horizontal line
         Box(
@@ -891,8 +961,8 @@ fun CrosshairIcon(
                 .height(2.dp)
                 .background(
                     color = color,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(1.dp)
-                )
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(1.dp),
+                ),
         )
 
         // Vertical line
@@ -902,8 +972,63 @@ fun CrosshairIcon(
                 .height(16.dp)
                 .background(
                     color = color,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(1.dp)
-                )
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(1.dp),
+                ),
         )
+    }
+}
+
+@Composable
+fun CacheModeControls(
+    isCacheModeEnabled: Boolean,
+    onToggleCacheMode: () -> Unit,
+    onStartCache: () -> Unit,
+    canStartCache: Boolean,
+) {
+    Card(
+        modifier = Modifier,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        ),
+        elevation = CardDefaults.cardElevation(1.dp),
+    ) {
+        Column(
+            modifier = Modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            IconButton(
+                onClick = onToggleCacheMode,
+                modifier = Modifier.size(36.dp),
+            ) {
+                if (isCacheModeEnabled) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Disable Cache Mode",
+                        tint = Color.Red,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.ExitToApp,
+                        contentDescription = "Enable Cache Mode",
+                        tint = Color.Green,
+                    )
+                }
+            }
+            if (isCacheModeEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                IconButton(
+                    onClick = onStartCache,
+                    enabled = canStartCache,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Cache Selected Area",
+                        tint = if (canStartCache) Color.Blue else Color.Gray,
+                    )
+                }
+            }
+        }
     }
 }

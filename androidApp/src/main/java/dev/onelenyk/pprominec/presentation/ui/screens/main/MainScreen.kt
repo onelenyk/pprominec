@@ -21,17 +21,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -42,7 +39,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,438 +46,95 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.onelenyk.pprominec.bussines.AzimuthCalculationResult
-import dev.onelenyk.pprominec.bussines.AzimuthCalculatorAPI
-import dev.onelenyk.pprominec.bussines.AzimuthInputNormalizer
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import dev.onelenyk.pprominec.bussines.GeoCoordinate
+import dev.onelenyk.pprominec.presentation.components.main.LocationButtonType
 import dev.onelenyk.pprominec.presentation.components.main.MainComponent
+import dev.onelenyk.pprominec.presentation.components.main.MainEffect
+import dev.onelenyk.pprominec.presentation.components.main.MainIntent
 import dev.onelenyk.pprominec.presentation.components.main.MainState
+import dev.onelenyk.pprominec.presentation.components.main.OutputData
 import dev.onelenyk.pprominec.presentation.components.main.Sample
+import dev.onelenyk.pprominec.presentation.mvi.MviScreen
 import dev.onelenyk.pprominec.presentation.ui.AppScreen
 import dev.onelenyk.pprominec.presentation.ui.components.AppTextField
 import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
-import dev.onelenyk.pprominec.presentation.components.main.OutputData
-
+import dev.onelenyk.pprominec.presentation.ui.screens.map.UsersMarkersDialog
 
 @Composable
 fun MainScreen(component: MainComponent) {
-    AppScreen(
-        showInnerPadding = true,
-        toolbar = { AppToolbar(title = "Калькулятор") },
-        content = {
-            InputAndResultScreen(
-                modifier = Modifier,
-                component = component,
-            )
+    val dialogSlot by component.dialog.subscribeAsState()
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    MviScreen(
+        component = component,
+        onEffect = { effect ->
+            when (effect) {
+                is MainEffect.ShowToast -> {
+                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                }
+
+                is MainEffect.CopyToClipboard -> {
+                    clipboardManager.setText(AnnotatedString(effect.text))
+                    Toast.makeText(context, "Скопійовано", Toast.LENGTH_SHORT).show()
+                }
+            }
         },
-    )
-}
-
-@Composable
-fun ProminchykCalculatorCard(
-    result: OutputData?,
-    onCalculate: () -> Unit,
-    onEdit: () -> Unit,
-    isResultMode: Boolean,
-    onModeChange: (Boolean) -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text("🎯", fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 8.dp))
-                Text(
-                    text = "Prominchyk Calculator — Target Azimuth Finder",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
+    ) { state, dispatch ->
+        AppScreen(
+            showInnerPadding = true,
+            toolbar = { AppToolbar(title = "Калькулятор") },
+            content = {
+                InputAndResultScreen(
+                    modifier = Modifier,
+                    state = state,
+                    dispatch = dispatch,
                 )
-            }
-            if (!isResultMode) {
-                Text(
-                    text = "Дано:\n- Координати точки A\n- Азимут з A на ціль\n- Відстань від A до цілі\n- Координати точки B\n\nЗавдання:\n1. Обчислити координати цілі з точки A.\n2. Знайти азимут з точки B на ціль.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                androidx.compose.material3.Button(
-                    onClick = { onCalculate(); onModeChange(true) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Обчислити координати")
+                // Render dialog if present
+                dialogSlot.child?.instance?.also {
+                    when (it) {
+                        is MainComponent.Dialog.UserMarkers -> {
+                            UsersMarkersDialog(component = it.usersMarkersComponent)
+                        }
+                    }
                 }
-            } else {
-                if (result != null) {
-                    Text(
-                        text = "Координати цілі:",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color(0xFF1B5E20)
-                    )
-                    Text(
-                        text = "Широта: %.6f".format(result.targetPosition?.lat ?: 0.0),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF222222)
-                    )
-                    Text(
-                        text = "Довгота: %.6f".format(result.targetPosition?.lon ?: 0.0),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF222222)
-                    )
-                } else {
-                    Text(
-                        text = "Будь ласка, введіть коректні значення у всі поля.",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                androidx.compose.material3.OutlinedButton(
-                    onClick = { onEdit(); onModeChange(false) }, modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Редагувати вхідні дані")
-                }
-            }
-        }
+            },
+        )
     }
 }
 
-@Composable
-fun TargetInputCard(
-    latA: String,
-    lonA: String,
-    azimuth: String,
-    distance: String,
-    onLatAChange: (String) -> Unit,
-    onLonAChange: (String) -> Unit,
-    onAzimuthChange: (String) -> Unit,
-    onDistanceChange: (String) -> Unit,
-    onSettingsClick: () -> Unit = {},
-) {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                Text(
-                    "🧮",
-                    modifier = Modifier.padding(end = 8.dp),
-                    fontSize = MaterialTheme.typography.titleLarge.fontSize
-                )
-                Text(
-                    text = "Обчислити координати цілі",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.weight(1f)
-                )
-                androidx.compose.material3.IconButton(
-                    onClick = onSettingsClick,
-                    modifier = Modifier
-                        .background(Color(0xFF1976D2), RoundedCornerShape(12.dp))
-                        .size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Settings,
-                        contentDescription = "Налаштування",
-                        tint = Color.White
-                    )
-                }
-            }
-            // Поля у два рядки по дві колонки
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = latA,
-                        onValueChange = onLatAChange,
-                        label = { Text("Широта A") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = lonA,
-                        onValueChange = onLonAChange,
-                        label = { Text("Довгота A") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = azimuth,
-                        onValueChange = onAzimuthChange,
-                        label = { Text("Азимут") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = distance,
-                        onValueChange = onDistanceChange,
-                        label = { Text("Відстань") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+// Helper functions for GeoCoordinate <-> String
+private fun geoToLat(coordinate: GeoCoordinate?): String = coordinate?.lat?.toString() ?: ""
+private fun geoToLon(coordinate: GeoCoordinate?): String = coordinate?.lon?.toString() ?: ""
+private fun latLonToGeo(lat: String, lon: String): GeoCoordinate? =
+    if (lat.isNotBlank() && lon.isNotBlank()) {
+        lat.toDoubleOrNull()?.let { latVal ->
+            lon.toDoubleOrNull()?.let { lonVal ->
+                GeoCoordinate(latVal, lonVal)
             }
         }
+    } else {
+        null
     }
-}
-
-@Composable
-fun TargetInputCard_Variant2(
-    latA: String,
-    lonA: String,
-    azimuth: String,
-    distance: String,
-    onLatAChange: (String) -> Unit,
-    onLonAChange: (String) -> Unit,
-    onAzimuthChange: (String) -> Unit,
-    onDistanceChange: (String) -> Unit,
-    onSettingsClick: () -> Unit = {},
-) {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Create,
-                    contentDescription = null,
-                    tint = Color(0xFF1976D2),
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(end = 10.dp)
-                )
-                Text(
-                    text = "Обчислити координати цілі",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.weight(1f),
-                    color = Color(0xFF222B45)
-                )
-                androidx.compose.material3.IconButton(
-                    onClick = onSettingsClick,
-                    modifier = Modifier
-                        .background(Color(0xFF1976D2), RoundedCornerShape(14.dp))
-                        .size(44.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Settings,
-                        contentDescription = "Налаштування",
-                        tint = Color.White
-                    )
-                }
-            }
-            // Поля у два рядки по дві колонки з покращеним стилем
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = latA,
-                        onValueChange = onLatAChange,
-                        label = { Text("Широта A") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    OutlinedTextField(
-                        value = lonA,
-                        onValueChange = onLonAChange,
-                        label = { Text("Довгота A") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = azimuth,
-                        onValueChange = onAzimuthChange,
-                        label = { Text("Азимут") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    OutlinedTextField(
-                        value = distance,
-                        onValueChange = onDistanceChange,
-                        label = { Text("Відстань") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TargetInputCard_Variant3(
-    latA: String,
-    lonA: String,
-    azimuth: String,
-    distance: String,
-    onLatAChange: (String) -> Unit,
-    onLonAChange: (String) -> Unit,
-    onAzimuthChange: (String) -> Unit,
-    onDistanceChange: (String) -> Unit,
-    onSettingsClick: () -> Unit = {},
-) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFFFF)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(28.dp))
-    ) {
-        Column(
-            modifier = Modifier.padding(28.dp), verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Create,
-                    contentDescription = null,
-                    tint = Color(0xFF512DA8),
-                    modifier = Modifier
-                        .size(36.dp)
-                        .padding(end = 12.dp)
-                )
-                Text(
-                    text = "Обчислити координати цілі",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp
-                    ),
-                    modifier = Modifier.weight(1f),
-                    color = Color(0xFF222B45)
-                )
-                androidx.compose.material3.IconButton(
-                    onClick = onSettingsClick,
-                    modifier = Modifier
-                        .background(Color(0xFF1976D2), RoundedCornerShape(16.dp))
-                        .size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Settings,
-                        contentDescription = "Налаштування",
-                        tint = Color.White
-                    )
-                }
-            }
-            // Поля у два рядки по дві колонки з ще більшим spacing, тінню, підписами
-            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = latA,
-                        onValueChange = onLatAChange,
-                        label = { Text("Широта A", color = Color(0xFF512DA8)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF512DA8),
-                            unfocusedBorderColor = Color(0xFFB39DDB)
-                        )
-                    )
-                    OutlinedTextField(
-                        value = lonA,
-                        onValueChange = onLonAChange,
-                        label = { Text("Довгота A", color = Color(0xFF512DA8)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF512DA8),
-                            unfocusedBorderColor = Color(0xFFB39DDB)
-                        )
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = azimuth,
-                        onValueChange = onAzimuthChange,
-                        label = { Text("Азимут", color = Color(0xFF1976D2)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1976D2),
-                            unfocusedBorderColor = Color(0xFF90CAF9)
-                        )
-                    )
-                    OutlinedTextField(
-                        value = distance,
-                        onValueChange = onDistanceChange,
-                        label = { Text("Відстань", color = Color(0xFF1976D2)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1976D2),
-                            unfocusedBorderColor = Color(0xFF90CAF9)
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun InputAndResultScreen(
     modifier: Modifier = Modifier,
-    component: MainComponent,
+    state: MainState,
+    dispatch: (MainIntent) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var selectedSampleText by remember { mutableStateOf("Оберіть зразок...") }
-    val state by component.state.collectAsState()
-
-    var isResultMode by remember { mutableStateOf(false) }
-    var isRenderModeA by remember { mutableStateOf(false) }
-    var isRenderModeB by remember { mutableStateOf(false) }
+    var latA by remember(state.inputData.pointA) { mutableStateOf(geoToLat(state.inputData.pointA)) }
+    var lonA by remember(state.inputData.pointA) { mutableStateOf(geoToLon(state.inputData.pointA)) }
+    var latB by remember(state.inputData.pointB) { mutableStateOf(geoToLat(state.inputData.pointB)) }
+    var lonB by remember(state.inputData.pointB) { mutableStateOf(geoToLon(state.inputData.pointB)) }
 
     Column(
         modifier = modifier
@@ -491,51 +144,50 @@ fun InputAndResultScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         IntroCard()
-        Spacer(modifier = Modifier.height(8.dp))
-
+        PointACoordinatesCard(
+            latA = latA,
+            lonA = lonA,
+            onLatAChange = {
+                latA = it
+                dispatch(MainIntent.OnPointAChange(latLonToGeo(latA, lonA)))
+            },
+            onLonAChange = {
+                lonA = it
+                dispatch(MainIntent.OnPointAChange(latLonToGeo(latA, lonA)))
+            },
+            isRenderMode = state.isRenderModeA,
+            result = state.outputData,
+            onModeChange = { dispatch(MainIntent.SetRenderModeA(it)) },
+            onLocationClick = { dispatch(MainIntent.OnLocationButtonClick(LocationButtonType.POINT_A)) },
+        )
         TargetCalculationCard(
-            latA = state.inputData.latA,
-            lonA = state.inputData.lonA,
             azimuth = state.inputData.azimuthFromA,
             distance = state.inputData.distanceKm,
-            onLatAChange = component::onLatAChange,
-            onLonAChange = component::onLonAChange,
-            onAzimuthChange = component::onAzimuthFromAChange,
-            onDistanceChange = component::onDistanceKmChange,
-            onSettingsClick = { /* TODO: handle settings click */ },
-            isRenderMode = isRenderModeA,
+            onAzimuthChange = { dispatch(MainIntent.OnAzimuthFromAChange(it)) },
+            onDistanceChange = { dispatch(MainIntent.OnDistanceKmChange(it)) },
+            onSettingsClick = {},
+            isRenderMode = state.isRenderModeB,
             result = state.outputData,
-            onModeChange = { isRenderModeA = it })
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Point B input card using Variant 4
+            onModeChange = { dispatch(MainIntent.SetRenderModeB(it)) },
+            onLocationClick = { dispatch(MainIntent.OnLocationButtonClick(LocationButtonType.TARGET)) },
+        )
         ObservationPointCard(
-            latB = state.inputData.latB,
-            lonB = state.inputData.lonB,
-            onLatBChange = component::onLatBChange,
-            onLonBChange = component::onLonBChange,
-            onSettingsClick = { /* TODO: handle settings click */ },
-            isRenderMode = isRenderModeB,
+            latB = latB,
+            lonB = lonB,
+            onLatBChange = {
+                latB = it
+                dispatch(MainIntent.OnPointBChange(latLonToGeo(latB, lonB)))
+            },
+            onLonBChange = {
+                lonB = it
+                dispatch(MainIntent.OnPointBChange(latLonToGeo(latB, lonB)))
+            },
+            onSettingsClick = {},
+            isRenderMode = state.isRenderModeC,
             result = state.outputData,
-            onModeChange = { isRenderModeB = it })
-
-        Spacer(modifier = Modifier.height(8.dp))
-//        SampleSelectorCard(
-//            expanded = expanded,
-//            onExpandedChange = { expanded = it },
-//            selectedSampleText = selectedSampleText,
-//            onSampleSelected = { sample ->
-//                selectedSampleText = sample.name
-//                component.applySample(sample)
-//                expanded = false
-//            },
-//            samples = state.samples,
-//            hideSamples = state.hideSamples,
-//            onHideSamples = component::hideSamples,
-//        )
-        // PointACard(state = state, component = component) // Hidden
-        // PointBCard(state = state, component = component) // Hidden
+            onModeChange = { dispatch(MainIntent.SetRenderModeC(it)) },
+            onLocationClick = { dispatch(MainIntent.OnLocationButtonClick(LocationButtonType.POINT_B)) },
+        )
         ResultCard(result = state.outputData)
     }
 }
@@ -631,7 +283,6 @@ fun SampleSelectorCard(
     }
 }
 
-
 @Composable
 fun ResultCard(result: OutputData?) {
     Card(
@@ -649,7 +300,11 @@ fun ResultCard(result: OutputData?) {
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             if (result != null) {
-                ResultScreen(result.targetPosition?.lat ?: 0.0, result.targetPosition?.lon ?: 0.0, result.azimuthFromB)
+                ResultScreen(
+                    result.targetPosition?.lat ?: 0.0,
+                    result.targetPosition?.lon ?: 0.0,
+                    result.azimuthFromB,
+                )
             } else {
                 Text(
                     "Будь ласка, введіть коректні значення у всі поля.",
@@ -740,91 +395,92 @@ fun ResultScreen(
 }
 
 @Composable
-fun TargetCalculationCard(
+fun PointACoordinatesCard(
     latA: String,
     lonA: String,
-    azimuth: String,
-    distance: String,
     onLatAChange: (String) -> Unit,
     onLonAChange: (String) -> Unit,
-    onAzimuthChange: (String) -> Unit,
-    onDistanceChange: (String) -> Unit,
-    onSettingsClick: () -> Unit = {}, // not used anymore, but keep for compatibility
     isRenderMode: Boolean,
     result: OutputData?,
     onModeChange: (Boolean) -> Unit,
+    onLocationClick: () -> Unit,
 ) {
     Card(
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(10.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
                         .size(24.dp)
                         .background(MaterialTheme.colorScheme.primary, CircleShape)
                         .padding(4.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = "1",
                         style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         ),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Обчислити координати цілі",
+                    text = "Координати точки A",
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold, fontSize = 18.sp
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
                     ),
                     modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
                 androidx.compose.material3.IconButton(
                     onClick = { onModeChange(!isRenderMode) },
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
-                        .size(32.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(10.dp),
+                        )
+                        .size(32.dp),
                 ) {
                     Icon(
                         imageVector = if (!isRenderMode) Icons.Filled.Build else Icons.Default.Face,
                         contentDescription = if (!isRenderMode) "Переглянути результат" else "Редагувати вхідні дані",
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
             }
 
             Spacer(
-                modifier = Modifier.height(8.dp)
+                modifier = Modifier.height(8.dp),
             )
             if (!isRenderMode) {
                 // Use AppTextField instead of OutlinedTextField
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     // Coordinates section with border and icon
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             // Coordinate fields
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
                             ) {
                                 AppTextField(
                                     modifier = Modifier.weight(1f),
@@ -834,7 +490,7 @@ fun TargetCalculationCard(
                                     isRequired = false,
                                     label = "Широта A:",
                                     placeholder = "42.222",
-                                    leftContent = { Text("\uD83D\uDD2D") } // 🧭
+                                    leftContent = { Text("\uD83D\uDD2D") }, // 🧭
                                 )
                                 AppTextField(
                                     modifier = Modifier.weight(1f),
@@ -844,83 +500,246 @@ fun TargetCalculationCard(
                                     isRequired = false,
                                     label = "Довгота А:",
                                     placeholder = "42.222",
-                                    leftContent = { Text("\uD83D\uDDFA\uFE0F") } // 🗺️
+                                    leftContent = { Text("\uD83D\uDDFA\uFE0F") }, // 🗺️
                                 )
                             }
 
                             Spacer(
-                                modifier = Modifier.width(8.dp)
+                                modifier = Modifier.width(8.dp),
                             )
                             // Small icon on the right
                             LocationButton(
-                                onClick = { /* TODO: Open map screen with location pin */ },
-                                modifier = Modifier
+                                onClick = onLocationClick,
+                                modifier = Modifier,
                             )
                         }
-                    }
-                    // Azimuth and distance fields
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        AppTextField(
-                            modifier = Modifier.weight(1f),
-                            value = azimuth,
-                            onValueChange = onAzimuthChange,
-                            maxLines = 1,
-                            isRequired = true,
-                            label = "Азимут:",
-                            placeholder = "80",
-                            leftContent = { Text("\u2197\uFE0F") } // ↗️
-                        )
-                        AppTextField(
-                            modifier = Modifier.weight(1f),
-                            value = distance,
-                            onValueChange = onDistanceChange,
-                            maxLines = 1,
-                            isRequired = false,
-                            label = "Відстань:",
-                            placeholder = "50",
-                            leftContent = { Text("\uD83D\uDCCF") } // 📏
-                        )
                     }
                 }
             } else {
                 // Render mode: show result in the same card
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                        .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
-                    Text(
-                        "Результат розрахунку",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (result != null) {
-                        Text(
-                            "Широта: %.6f".format(result.targetPosition?.lat ?: 0.0),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            "Довгота: %.6f".format(result.targetPosition?.lon ?: 0.0),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Азимут з B на ціль: %.2f°".format(result.azimuthFromB ?: 0.0),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
+                    if (result?.targetPosition != null) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.Top,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                // Coordinate fields
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    AppTextField(
+                                        modifier = Modifier.weight(1f),
+                                        value = result.targetPosition.lat.toString(),
+                                        onValueChange = { },
+                                        maxLines = 3,
+                                        isRequired = false,
+                                        label = "Широта Цілі:",
+                                        placeholder = "42.222",
+                                        leftContent = { Text("\uD83D\uDD2D") }, // 🧭
+                                    )
+                                    AppTextField(
+                                        modifier = Modifier.weight(1f),
+                                        value = result.targetPosition.lon.toString(),
+                                        onValueChange = { },
+                                        maxLines = 3,
+                                        isRequired = false,
+                                        label = "Довгота Цілі:",
+                                        placeholder = "42.222",
+                                        leftContent = { Text("\uD83D\uDDFA\uFE0F") }, // 🗺️
+                                    )
+                                }
+
+                                Spacer(
+                                    modifier = Modifier.width(8.dp),
+                                )
+                                // Small icon on the right
+                                LocationButton(
+                                    onClick = onLocationClick,
+                                    modifier = Modifier,
+                                )
+                            }
+                        }
                     } else {
                         Text(
-                            "Будь ласка, введіть коректні значення у всі поля.",
-                            color = MaterialTheme.colorScheme.error
+                            "Помилка обчислення координат",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TargetCalculationCard(
+    azimuth: String,
+    distance: String,
+    onAzimuthChange: (String) -> Unit,
+    onDistanceChange: (String) -> Unit,
+    onSettingsClick: () -> Unit = {}, // not used anymore, but keep for compatibility
+    isRenderMode: Boolean,
+    result: OutputData?,
+    onModeChange: (Boolean) -> Unit,
+    onLocationClick: () -> Unit,
+) {
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                        .padding(4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "2",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Азимут та відстань до цілі",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                    ),
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                androidx.compose.material3.IconButton(
+                    onClick = { onModeChange(!isRenderMode) },
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(10.dp),
+                        )
+                        .size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = if (!isRenderMode) Icons.Filled.Build else Icons.Default.Face,
+                        contentDescription = if (!isRenderMode) "Переглянути результат" else "Редагувати вхідні дані",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(8.dp),
+            )
+            if (!isRenderMode) {
+                // Azimuth and distance fields
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    AppTextField(
+                        modifier = Modifier.weight(1f),
+                        value = azimuth,
+                        onValueChange = onAzimuthChange,
+                        maxLines = 1,
+                        isRequired = true,
+                        label = "Азимут на ціль:",
+                        placeholder = "80",
+                        leftContent = { Text("\u2197\uFE0F") }, // ↗️
+                    )
+                    AppTextField(
+                        modifier = Modifier.weight(1f),
+                        value = distance,
+                        onValueChange = onDistanceChange,
+                        maxLines = 1,
+                        isRequired = false,
+                        label = "Відстань до цілі:",
+                        placeholder = "50",
+                        leftContent = { Text("\uD83D\uDCCF") }, // 📏
+                    )
+                }
+            } else {
+                // Render mode: show result in the same card
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    if (result?.targetPosition != null) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.Top,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                // Coordinate fields
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    AppTextField(
+                                        modifier = Modifier.weight(1f),
+                                        value = result.targetPosition.lat.toString(),
+                                        onValueChange = { },
+                                        maxLines = 3,
+                                        isRequired = false,
+                                        label = "Широта Цілі:",
+                                        placeholder = "42.222",
+                                        leftContent = { Text("\uD83D\uDD2D") }, // 🧭
+                                    )
+                                    AppTextField(
+                                        modifier = Modifier.weight(1f),
+                                        value = result.targetPosition.lon.toString(),
+                                        onValueChange = { },
+                                        maxLines = 3,
+                                        isRequired = false,
+                                        label = "Довгота Цілі:",
+                                        placeholder = "42.222",
+                                        leftContent = { Text("\uD83D\uDDFA\uFE0F") }, // 🗺️
+                                    )
+                                }
+
+                                Spacer(
+                                    modifier = Modifier.width(8.dp),
+                                )
+                                // Small icon on the right
+                                LocationButton(
+                                    onClick = onLocationClick,
+                                    modifier = Modifier,
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            "Помилка обчислення координат",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
@@ -939,77 +758,82 @@ fun ObservationPointCard(
     isRenderMode: Boolean,
     result: OutputData?,
     onModeChange: (Boolean) -> Unit,
+    onLocationClick: () -> Unit,
 ) {
     Card(
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(10.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
                         .size(24.dp)
                         .background(MaterialTheme.colorScheme.secondary, CircleShape)
                         .padding(4.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "2",
+                        text = "3",
                         style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         ),
-                        color = MaterialTheme.colorScheme.onSecondary
+                        color = MaterialTheme.colorScheme.onSecondary,
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Точка B (інша позиція)",
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold, fontSize = 18.sp
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
                     ),
                     modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
                 androidx.compose.material3.IconButton(
                     onClick = { onModeChange(!isRenderMode) },
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp))
-                        .size(32.dp)
+                        .background(
+                            MaterialTheme.colorScheme.secondary,
+                            RoundedCornerShape(10.dp),
+                        )
+                        .size(32.dp),
                 ) {
                     Icon(
                         imageVector = if (!isRenderMode) Icons.Filled.Build else Icons.Default.Face,
                         contentDescription = if (!isRenderMode) "Переглянути результат" else "Редагувати вхідні дані",
-                        tint = MaterialTheme.colorScheme.onSecondary
+                        tint = MaterialTheme.colorScheme.onSecondary,
                     )
                 }
             }
 
             Spacer(
-                modifier = Modifier.height(8.dp)
+                modifier = Modifier.height(8.dp),
             )
             if (!isRenderMode) {
                 // Use AppTextField instead of OutlinedTextField
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     // Coordinates section with border and icon
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             // Coordinate fields
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
                             ) {
                                 AppTextField(
                                     modifier = Modifier.weight(1f),
@@ -1019,7 +843,7 @@ fun ObservationPointCard(
                                     isRequired = false,
                                     label = "Широта B:",
                                     placeholder = "42.222",
-                                    leftContent = { Text("\uD83D\uDD2D") } // 🧭
+                                    leftContent = { Text("\uD83D\uDD2D") }, // 🧭
                                 )
                                 AppTextField(
                                     modifier = Modifier.weight(1f),
@@ -1029,17 +853,17 @@ fun ObservationPointCard(
                                     isRequired = false,
                                     label = "Довгота B:",
                                     placeholder = "42.222",
-                                    leftContent = { Text("\uD83D\uDDFA\uFE0F") } // 🗺️
+                                    leftContent = { Text("\uD83D\uDDFA\uFE0F") }, // 🗺️
                                 )
                             }
 
                             Spacer(
-                                modifier = Modifier.width(8.dp)
+                                modifier = Modifier.width(8.dp),
                             )
                             // Small icon on the right
                             LocationButton(
-                                onClick = { /* TODO: Open map screen with location pin */ },
-                                modifier = Modifier
+                                onClick = onLocationClick,
+                                modifier = Modifier,
                             )
                         }
                     }
@@ -1051,29 +875,64 @@ fun ObservationPointCard(
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
-                        "Координати точки B",
+                        "Відстань та азимут до цілі",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.secondary,
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (result != null) {
-                        Text(
-                            "Широта: %.6f".format(result.targetPosition?.lat ?: 0.0),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            "Довгота: %.6f".format(result.targetPosition?.lon ?: 0.0),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (result?.azimuthFromB != null && result?.distanceFromB != null) {
+                        // Distance row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "📏",
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .padding(end = 8.dp),
+                                fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                            )
+                            AppTextField(
+                                value = "%.2f км".format(result.distanceFromB),
+                                onValueChange = { },
+                                label = "Відстань",
+                                readOnly = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Azimuth row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "🧭",
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .padding(end = 8.dp),
+                                fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                            )
+                            AppTextField(
+                                value = "%.2f°".format(result.azimuthFromB),
+                                onValueChange = { },
+                                label = "Азимут",
+                                readOnly = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     } else {
                         Text(
-                            "Будь ласка, введіть коректні значення у всі поля.",
-                            color = MaterialTheme.colorScheme.error
+                            "Введіть координати точки B для обчислення",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
@@ -1093,29 +952,24 @@ fun LocationButton(
 ) {
     Box(
 
-
         modifier = modifier
             //  .size(48.dp)
             .border(
                 width = 1.dp,
                 color = borderColor,
-                shape = shape
+                shape = shape,
             )
             .background(backgroundColor, shape)
             .clip(shape)
             .clickable(onClick = onClick)
             .padding(8.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = Icons.Filled.LocationOn,
             contentDescription = "Відкрити карту з локацією",
             tint = iconColor,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(24.dp),
         )
     }
 }
-
-
-
-

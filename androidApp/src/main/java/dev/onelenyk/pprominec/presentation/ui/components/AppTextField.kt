@@ -24,10 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,6 +69,7 @@ fun AppTextField(
     borderColor: Color = MaterialTheme.colorScheme.primary,
     backgroundColor: Color = MaterialTheme.colorScheme.background,
     radius: Dp = 12.dp,
+    readOnly: Boolean = false,
     leftContent: @Composable (() -> Unit)? = null,
     rightContent: @Composable (() -> Unit)? = null,
 ) {
@@ -79,27 +78,28 @@ fun AppTextField(
     val showLabelAbove = label.isNotEmpty() && isFocused
 
     // Convert string to TextFieldValue with caret at end when focused
-    val textFieldValue = remember(value, isFocused) {
-        TextFieldValue(
-            text = value,
-            selection = if (isFocused && value.isNotEmpty()) {
-                TextRange(value.length)
-            } else {
-                TextRange(0)
-            }
-        )
-    }
+//    val textFieldValue = remember(value, isFocused) {
+//        TextFieldValue(
+//            text = value,
+//            selection = if (isFocused && value.isNotEmpty()) {
+//                TextRange(value.length)
+//            } else {
+//                TextRange(0)
+//            }
+//        )
+//    }
 
     BasicTextField(
         modifier = modifier,
-        value = textFieldValue,
+        value = value,
         interactionSource = interactionSource,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         maxLines = maxLines,
         onValueChange = { newValue ->
-            onValueChange(newValue.text)
+            onValueChange(newValue)
         },
+        readOnly = readOnly,
         textStyle = textStyle,
         decorationBox = { innerTextField ->
             Column(
@@ -163,4 +163,4 @@ fun AppTextField(
             }
         },
     )
-} 
+}

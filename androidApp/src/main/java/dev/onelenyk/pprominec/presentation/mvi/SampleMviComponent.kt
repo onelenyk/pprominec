@@ -16,7 +16,7 @@ sealed class SampleIntent : Intent {
 data class SampleState(
     val count: Int = 0,
     val isLoading: Boolean = false,
-    val lastAction: String = ""
+    val lastAction: String = "",
 ) : State
 
 sealed class SampleEffect : Effect {
@@ -29,8 +29,8 @@ interface SampleMviComponent
 
 class DefaultSampleMviComponent(
     componentContext: ComponentContext,
-    private val initialValue: Int = 0
-) : MviComponent<SampleIntent, SampleState, SampleEffect>,SampleMviComponent,  ComponentContext by componentContext {
+    private val initialValue: Int = 0,
+) : MviComponent<SampleIntent, SampleState, SampleEffect>, SampleMviComponent, ComponentContext by componentContext {
 
     override val _state = MutableStateFlow(SampleState(count = initialValue))
     override val _effect = Channel<SampleEffect>(Channel.BUFFERED)
@@ -42,7 +42,7 @@ class DefaultSampleMviComponent(
                 val newCount = currentState.count + 1
                 val newState = currentState.copy(
                     count = newCount,
-                    lastAction = "Incremented"
+                    lastAction = "Incremented",
                 )
                 updateState(newState)
             }
@@ -52,7 +52,7 @@ class DefaultSampleMviComponent(
                 val newCount = currentState.count - 1
                 val newState = currentState.copy(
                     count = newCount,
-                    lastAction = "Decremented"
+                    lastAction = "Decremented",
                 )
                 updateState(newState)
             }
@@ -61,7 +61,7 @@ class DefaultSampleMviComponent(
                 val currentState = _state.value
                 val newState = currentState.copy(
                     count = intent.value,
-                    lastAction = "Set to ${intent.value}"
+                    lastAction = "Set to ${intent.value}",
                 )
                 updateState(newState)
             }
@@ -70,7 +70,7 @@ class DefaultSampleMviComponent(
                 val currentState = _state.value
                 val newState = currentState.copy(
                     count = 0,
-                    lastAction = "Reset"
+                    lastAction = "Reset",
                 )
                 updateState(newState)
                 emitEffect(SampleEffect.ShowToast("Counter reset to 0"))
@@ -82,8 +82,8 @@ class DefaultSampleMviComponent(
                 updateState(
                     currentState.copy(
                         isLoading = true,
-                        lastAction = "Generating random number..."
-                    )
+                        lastAction = "Generating random number...",
+                    ),
                 )
 
                 // Simulate a long-running operation
@@ -93,7 +93,7 @@ class DefaultSampleMviComponent(
                 val newState = _state.value.copy(
                     count = randomNumber,
                     lastAction = "Random number generated",
-                    isLoading = false
+                    isLoading = false,
                 )
                 updateState(newState)
                 emitEffect(SampleEffect.ShowToast("Random number: $randomNumber"))

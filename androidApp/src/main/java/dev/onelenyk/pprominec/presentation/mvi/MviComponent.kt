@@ -1,6 +1,5 @@
 package dev.onelenyk.pprominec.presentation.mvi
 
-import com.arkivanov.decompose.ComponentContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,5 +59,3 @@ interface MviComponent<Intent : dev.onelenyk.pprominec.presentation.mvi.Intent, 
         _effect.send(effect)
     }
 }
-
-

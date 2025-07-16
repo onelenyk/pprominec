@@ -17,6 +17,7 @@ import java.util.UUID
  */
 enum class SupportedFileType(val extension: String) {
     MBTILES("mbtiles"),
+    ZIP("zip"),
     NOT_SUPPORTED(""),
     ;
 

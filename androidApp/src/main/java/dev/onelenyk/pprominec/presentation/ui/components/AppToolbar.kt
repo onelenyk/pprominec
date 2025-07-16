@@ -71,16 +71,16 @@ fun AppToolbar(
                     Box(
                         modifier = Modifier
                             .background(Color.Red)
-                            .height(24.dp)
+                            .height(24.dp),
                     ) {
                         endContent()
                     }
                 }
             },
             colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
             expandedHeight = 44.dp,
             windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp)
                 .only(WindowInsetsSides.Top),

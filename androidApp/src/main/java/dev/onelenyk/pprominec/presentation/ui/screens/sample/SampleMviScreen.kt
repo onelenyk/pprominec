@@ -20,10 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import dev.onelenyk.pprominec.presentation.mvi.DefaultSampleMviComponent
 import dev.onelenyk.pprominec.presentation.mvi.MviScreen
 import dev.onelenyk.pprominec.presentation.mvi.SampleEffect
 import dev.onelenyk.pprominec.presentation.mvi.SampleIntent
-import dev.onelenyk.pprominec.presentation.mvi.DefaultSampleMviComponent
 import dev.onelenyk.pprominec.presentation.mvi.SampleState
 import dev.onelenyk.pprominec.presentation.ui.AppScreen
 import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
@@ -34,7 +34,7 @@ import dev.onelenyk.pprominec.presentation.ui.components.AppToolbar
 @Composable
 fun SampleMviScreen(component: DefaultSampleMviComponent) {
     val context = LocalContext.current
-    
+
     MviScreen(
         component = component,
         onEffect = { effect ->
@@ -49,16 +49,16 @@ fun SampleMviScreen(component: DefaultSampleMviComponent) {
                     Toast.makeText(context, "Error: ${effect.error}", Toast.LENGTH_LONG).show()
                 }
             }
-        }
+        },
     ) { state, dispatch ->
         AppScreen(
             toolbar = { AppToolbar(title = "Sample MVI Counter") },
             content = {
                 SampleMviContent(
                     state = state,
-                    dispatch = dispatch
+                    dispatch = dispatch,
                 )
-            }
+            },
         )
     }
 }
@@ -66,150 +66,150 @@ fun SampleMviScreen(component: DefaultSampleMviComponent) {
 @Composable
 fun SampleMviContent(
     state: SampleState,
-    dispatch: (SampleIntent) -> Unit
+    dispatch: (SampleIntent) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Counter display
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(4.dp)
+            elevation = CardDefaults.cardElevation(4.dp),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = "Counter",
-                    style = MaterialTheme.typography.headlineMedium
+                    style = MaterialTheme.typography.headlineMedium,
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
                     text = state.count.toString(),
                     style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 )
-                
+
                 if (state.isLoading) {
                     Spacer(modifier = Modifier.height(8.dp))
                     CircularProgressIndicator()
                 }
-                
+
                 if (state.lastAction.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Last action: ${state.lastAction}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         }
-        
+
         // Control buttons
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(4.dp)
+            elevation = CardDefaults.cardElevation(4.dp),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = "Controls",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
                 )
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Button(
                         onClick = { dispatch(SampleIntent.Decrement) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text("-")
                     }
-                    
+
                     Button(
                         onClick = { dispatch(SampleIntent.Increment) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text("+")
                     }
                 }
-                
+
                 Button(
                     onClick = { dispatch(SampleIntent.Reset) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Reset")
                 }
-                
+
                 Button(
                     onClick = { dispatch(SampleIntent.ShowRandomNumber) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Generate Random Number")
                 }
-                
+
                 // Example of setting a specific value
                 Button(
                     onClick = { dispatch(SampleIntent.SetValue(42)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Set to 42")
                 }
             }
         }
-        
+
         // Instructions
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(2.dp)
+            elevation = CardDefaults.cardElevation(2.dp),
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
             ) {
                 Text(
                     text = "MVI Pattern Demo",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
                     text = "This demonstrates the MVI pattern with:",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
                 )
-                
+
                 Text(
                     text = "• Intents: User actions (buttons, etc.)",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
                 )
-                
+
                 Text(
                     text = "• State: Current UI state (count, loading, etc.)",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
                 )
-                
+
                 Text(
                     text = "• Effects: One-time events (toasts, navigation)",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
                 )
-                
+
                 Text(
                     text = "• Long-running operations (random number generation)",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
         }
     }
-} 
+}

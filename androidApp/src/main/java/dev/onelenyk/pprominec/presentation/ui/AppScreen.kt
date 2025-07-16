@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 @Composable
 fun AppScreen(
@@ -57,4 +59,19 @@ fun AppScreen(
             content()
         }
     }
-} 
+}
+
+@Composable
+fun AppDialog(
+    content: @Composable () -> Unit,
+    onDismissRequest: () -> Unit,
+    properties: DialogProperties = DialogProperties(
+        usePlatformDefaultWidth = false,
+    ),
+) {
+    Dialog(
+        content = content,
+        onDismissRequest = onDismissRequest,
+        properties = properties,
+    )
+}

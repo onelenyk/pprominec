@@ -40,44 +40,39 @@ class DefaultRootComponent(
     private val permissionsManager: PermissionsManager = getKoin().get()
     private val fileManager: FileManager = getKoin().get()
 
-    override val childStack: Value<ChildStack<*, RootComponent.Child>> =
-        childStack(
-            source = navigation,
-            serializer = Config.serializer(),
-            initialConfiguration = Config.BottomNav,
-            handleBackButton = true,
-            childFactory = ::child,
-        )
+    override val childStack: Value<ChildStack<*, RootComponent.Child>> = childStack(
+        source = navigation,
+        serializer = Config.serializer(),
+        initialConfiguration = Config.BottomNav,
+        handleBackButton = true,
+        childFactory = ::child,
+    )
 
     private fun child(
         config: Config,
         componentContext: ComponentContext,
-    ): RootComponent.Child =
-        when (config) {
-            is Config.BottomNav ->
-                RootComponent.Child.BottomNav(
-                    DefaultBottomNavComponent(
-                        componentContext,
-                        onPermissionsClicked = { showPermissionsScreen() },
-                        onMapSettingsClicked = { showMapSettingsScreen() },
-                    ),
-                )
+    ): RootComponent.Child = when (config) {
+        is Config.BottomNav -> RootComponent.Child.BottomNav(
+            DefaultBottomNavComponent(
+                componentContext,
+                onPermissionsClicked = { showPermissionsScreen() },
+                onMapSettingsClicked = { showMapSettingsScreen() },
+            ),
+        )
 
-            is Config.Permissions ->
-                RootComponent.Child.Permissions(
-                    DefaultPermissionsComponent(componentContext, permissionsManager, onBack = {
-                        navigation.pop()
-                    }),
-                )
+        is Config.Permissions -> RootComponent.Child.Permissions(
+            DefaultPermissionsComponent(componentContext, permissionsManager, onBack = {
+                navigation.pop()
+            }),
+        )
 
-            is Config.MapSettings ->
-                RootComponent.Child.MapSettings(
-                    DefaultMapSettingsComponent(
-                        componentContext,
-                        onBack = { navigation.pop() },
-                    ),
-                )
-        }
+        is Config.MapSettings -> RootComponent.Child.MapSettings(
+            DefaultMapSettingsComponent(
+                componentContext,
+                onBack = { navigation.pop() },
+            ),
+        )
+    }
 
     override fun showPermissionsScreen() {
         navigation.bringToFront(Config.Permissions)
@@ -89,13 +84,11 @@ class DefaultRootComponent(
 
     @Serializable
     private sealed class Config {
-        @Serializable
+
         data object BottomNav : Config()
 
-        @Serializable
         data object Permissions : Config()
 
-        @Serializable
         data object MapSettings : Config()
     }
 }

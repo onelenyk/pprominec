@@ -1,18 +1,27 @@
 package dev.onelenyk.pprominec.presentation.ui
 
-import dev.onelenyk.pprominec.R
-import org.osmdroid.util.GeoPoint
+import dev.onelenyk.pprominec.bussines.GeoCoordinate
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
 
 // Data class for map markers
+enum class MapMarkerType {
+    DEFAULT,
+    CACHE_CORNER,
+}
+
+// Extend MapMarker to include a type property (default to DEFAULT)
 data class MapMarker(
     val id: String,
     val latitude: Double,
     val longitude: Double,
-    val title: String,
-    val description: String? = null,
-    val icon: Int? = org.osmdroid.library.R.drawable.ic_menu_compass, // Resource ID for custom icon
-)
+    val title: String = "",
+    val description: String = "",
+    val type: MapMarkerType = MapMarkerType.DEFAULT,
+    val iconResId: Int? = null,
+) {
+    fun geo() = GeoCoordinate(latitude, longitude)
+}
 
 // Enum for map modes
 enum class MapMode {

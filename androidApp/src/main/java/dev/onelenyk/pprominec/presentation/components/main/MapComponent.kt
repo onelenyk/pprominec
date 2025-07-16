@@ -1,23 +1,35 @@
 package dev.onelenyk.pprominec.presentation.components.main
 
-import android.content.Context
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.slot.dismiss
+import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnStart
+import dev.onelenyk.pprominec.R
 import dev.onelenyk.pprominec.data.MapSettingsRepository
+import dev.onelenyk.pprominec.presentation.coroutineScope
 import dev.onelenyk.pprominec.presentation.mvi.Effect
 import dev.onelenyk.pprominec.presentation.mvi.Intent
 import dev.onelenyk.pprominec.presentation.mvi.MviComponent
 import dev.onelenyk.pprominec.presentation.mvi.State
 import dev.onelenyk.pprominec.presentation.ui.MapMarker
+import dev.onelenyk.pprominec.presentation.ui.MapMarkerType
 import dev.onelenyk.pprominec.presentation.ui.MapMode
 import dev.onelenyk.pprominec.presentation.ui.MapViewState
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.koin.java.KoinJavaComponent.getKoin
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
+import org.osmdroid.util.BoundingBox
+import org.osmdroid.util.GeoPoint
 import java.io.File
 
 /**
@@ -54,6 +66,16 @@ sealed class MapIntent : Intent {
 
     // File operations
     data class LoadOfflineMap(val filePath: String) : MapIntent()
+
+    // --- Additions for region caching ---
+    data class EnableCacheMode(val center: GeoPoint) : MapIntent()
+    object DisableCacheMode : MapIntent()
+    data class SetCacheRegionPoints(val points: List<MapMarker>) : MapIntent()
+    object ShowCacheUsage : MapIntent()
+    data class UpdateMarkerPosition(
+        val mapMarker: MapMarker,
+        val marker: org.osmdroid.views.overlay.Marker,
+    ) : MapIntent()
 }
 
 /**
@@ -61,10 +83,24 @@ sealed class MapIntent : Intent {
  */
 data class MapState(
     val mapViewState: MapViewState = MapViewState(),
-    val markers: List<MapMarker> = emptyList(),
+    val userMarkers: List<MapMarker> = emptyList(),
     val selectedMapFile: FileInfo? = null,
     val showMarkersDialog: Boolean = false,
-) : State
+    // --- Cache region selection state ---
+    val isCacheModeEnabled: Boolean = false,
+    val cacheRegionPoints: List<MapMarker> = listOf(),
+    val isCachingInProgress: Boolean = false,
+    val lastCacheUsageMB: Double? = null,
+) : State {
+    val markers: List<MapMarker>
+        get() = userMarkers.plus(
+            if (isCacheModeEnabled) {
+                cacheRegionPoints
+            } else {
+                listOf()
+            },
+        )
+}
 
 /**
  * Effects for Map screen - one-time events that should be handled
@@ -73,30 +109,68 @@ sealed class MapEffect : Effect {
     data class ShowToast(val message: String) : MapEffect()
     data class NavigateToMarkerDetails(val marker: MapMarker) : MapEffect()
     data class StartCaching(val boundingBox: String) : MapEffect()
-    data class CacheCompleted(val tileCount: Int) : MapEffect()
     data class ErrorOccurred(val message: String) : MapEffect()
+
+    // --- Cache region selection effects ---
+    data class ShowCacheUsage(val sizeMB: Double) : MapEffect()
+    object CacheStarted : MapEffect()
+    object CacheCompleted : MapEffect()
+    data class CacheError(val message: String) : MapEffect()
 }
 
 /**
  * MVI-based Map Component interface
  */
-interface MapComponent : MviComponent<MapIntent, MapState, MapEffect>
+interface MapComponent : MviComponent<MapIntent, MapState, MapEffect> {
+    // Dialog logic
+    val dialog: Value<ChildSlot<DialogConfig, Dialog>>
+    fun showUserMarkerDialog()
+    suspend fun startCacheRegion(zoomMin: Int, zoomMax: Int, mapView: org.osmdroid.views.MapView)
+
+    @Serializable
+    sealed class DialogConfig {
+        @Serializable
+        data object UserMarker : DialogConfig()
+    }
+
+    sealed class Dialog {
+        data class UserMarkers(val usersMarkersComponent: UsersMarkersComponent) : Dialog()
+    }
+}
 
 /**
  * Implementation of MapComponent
  */
 class DefaultMapComponent(
     componentContext: ComponentContext,
-    private val appContext: Context,
-    private val coroutineScope: CoroutineScope,
 ) : MapComponent, ComponentContext by componentContext {
-
     override val _state = MutableStateFlow(MapState())
     override val _effect = Channel<MapEffect>(Channel.BUFFERED)
 
-    private val fileManager: dev.onelenyk.pprominec.presentation.components.main.FileManager =
+    private val fileManager: FileManager =
         getKoin().get()
     private val mapSettingsRepository: MapSettingsRepository = getKoin().get()
+    private val usersMarkersRepository: UsersMarkersRepository = getKoin().get()
+
+    private val dialogNavigation = SlotNavigation<MapComponent.DialogConfig>()
+    override val dialog: Value<ChildSlot<MapComponent.DialogConfig, MapComponent.Dialog>> = childSlot(
+        source = dialogNavigation,
+        serializer = MapComponent.DialogConfig.serializer(),
+        handleBackButton = true,
+    ) { config, componentContext ->
+        when (config) {
+            is MapComponent.DialogConfig.UserMarker -> MapComponent.Dialog.UserMarkers(
+                DefaultUsersMarkersComponent(
+                    componentContext = componentContext,
+                    onClose = { dialogNavigation.dismiss() },
+                ),
+            )
+        }
+    }
+
+    override fun showUserMarkerDialog() {
+        dialogNavigation.activate(MapComponent.DialogConfig.UserMarker)
+    }
 
     init {
         componentContext.lifecycle.doOnStart {
@@ -114,13 +188,19 @@ class DefaultMapComponent(
                         null
                     }
 
-                    updateState(
-                        _state.value.copy(
-                            mapViewState = _state.value.mapViewState.copy(mapMode = mapMode),
+                    _state.update { state ->
+                        state.copy(
+                            mapViewState = state.mapViewState.copy(mapMode = mapMode),
                             selectedMapFile = selectedFile,
                         )
-                    )
+                    }
                 }.collectLatest { }
+            }
+            // Observe marker changes from repository
+            coroutineScope.launch {
+                usersMarkersRepository.markersFlow.collect { markers ->
+                    _state.update { state -> state.copy(userMarkers = markers) }
+                }
             }
         }
     }
@@ -132,77 +212,67 @@ class DefaultMapComponent(
             }
 
             is MapIntent.AddMarker -> {
-                val currentState = _state.value
-                val currentMarkers = currentState.markers.toMutableList()
-                // Remove existing marker with same ID if it exists
-                currentMarkers.removeAll { it.id == intent.marker.id }
-                currentMarkers.add(intent.marker)
-                updateState(currentState.copy(markers = currentMarkers))
+                usersMarkersRepository.addMarker(intent.marker)
             }
 
             is MapIntent.RemoveMarker -> {
-                val currentState = _state.value
-                val currentMarkers = currentState.markers.toMutableList()
-                currentMarkers.removeAll { it.id == intent.markerId }
-                updateState(currentState.copy(markers = currentMarkers))
+                usersMarkersRepository.deleteMarker(intent.markerId)
             }
 
             is MapIntent.ClearMarkers -> {
-                val currentState = _state.value
-                updateState(currentState.copy(markers = emptyList()))
+                usersMarkersRepository.clear()
             }
 
             is MapIntent.UpdateMapViewState -> {
                 val currentState = _state.value
-                updateState(currentState.copy(mapViewState = intent.newState))
+                _state.update { state -> state.copy(mapViewState = intent.newState) }
             }
 
             is MapIntent.MapCenterChanged -> {
                 val currentState = _state.value
                 val newMapViewState = currentState.mapViewState.copy(
-                    center = org.osmdroid.util.GeoPoint(intent.latitude, intent.longitude)
+                    center = org.osmdroid.util.GeoPoint(intent.latitude, intent.longitude),
                 )
-                updateState(currentState.copy(mapViewState = newMapViewState))
+                _state.update { state -> state.copy(mapViewState = newMapViewState) }
             }
 
             is MapIntent.ZoomLevelChanged -> {
                 val currentState = _state.value
                 val newMapViewState = currentState.mapViewState.copy(zoomLevel = intent.zoomLevel)
-                updateState(currentState.copy(mapViewState = newMapViewState))
+                _state.update { state -> state.copy(mapViewState = newMapViewState) }
             }
 
             is MapIntent.TileSourceChanged -> {
                 val currentState = _state.value
                 val newMapViewState = currentState.mapViewState.copy(tileSource = intent.tileSource)
-                updateState(currentState.copy(mapViewState = newMapViewState))
+                _state.update { state -> state.copy(mapViewState = newMapViewState) }
             }
 
             is MapIntent.ToggleMyLocation -> {
                 val currentState = _state.value
                 val newMapViewState = currentState.mapViewState.copy(showMyLocation = intent.show)
-                updateState(currentState.copy(mapViewState = newMapViewState))
+                _state.update { state -> state.copy(mapViewState = newMapViewState) }
             }
 
             is MapIntent.ToggleZoomControls -> {
                 val currentState = _state.value
                 val newMapViewState = currentState.mapViewState.copy(showZoomControls = intent.show)
-                updateState(currentState.copy(mapViewState = newMapViewState))
+                _state.update { state -> state.copy(mapViewState = newMapViewState) }
             }
 
             is MapIntent.ToggleCrosshair -> {
                 val currentState = _state.value
                 val newMapViewState = currentState.mapViewState.copy(showCrosshair = intent.show)
-                updateState(currentState.copy(mapViewState = newMapViewState))
+                _state.update { state -> state.copy(mapViewState = newMapViewState) }
             }
 
             is MapIntent.ShowMarkersDialog -> {
-                val currentState = _state.value
-                updateState(currentState.copy(showMarkersDialog = true))
+                showUserMarkerDialog()
             }
 
             is MapIntent.HideMarkersDialog -> {
                 val currentState = _state.value
-                updateState(currentState.copy(showMarkersDialog = false))
+                _state.update { state -> state.copy(showMarkersDialog = false) }
             }
 
             is MapIntent.MapTapped -> {
@@ -211,10 +281,10 @@ class DefaultMapComponent(
                         "Map tapped at: ${
                             String.format(
                                 "%.4f",
-                                intent.latitude
+                                intent.latitude,
                             )
-                        }, ${String.format("%.4f", intent.longitude)}"
-                    )
+                        }, ${String.format("%.4f", intent.longitude)}",
+                    ),
                 )
             }
 
@@ -224,10 +294,10 @@ class DefaultMapComponent(
                         "Map long pressed at: ${
                             String.format(
                                 "%.4f",
-                                intent.latitude
+                                intent.latitude,
                             )
-                        }, ${String.format("%.4f", intent.longitude)}"
-                    )
+                        }, ${String.format("%.4f", intent.longitude)}",
+                    ),
                 )
             }
 
@@ -237,17 +307,10 @@ class DefaultMapComponent(
                     id = "marker_${System.currentTimeMillis()}",
                     latitude = intent.latitude,
                     longitude = intent.longitude,
-                    title = "Marker at ${
-                        String.format(
-                            "%.4f",
-                            intent.latitude
-                        )
-                    }, ${String.format("%.4f", intent.longitude)}",
-                    description = "Added at map center",
+                    title = "Marker #${currentState.markers.lastIndex + 1}",
+                    description = "Added at map position",
                 )
-                val currentMarkers = currentState.markers.toMutableList()
-                currentMarkers.add(newMarker)
-                updateState(currentState.copy(markers = currentMarkers))
+                usersMarkersRepository.addMarker(newMarker)
             }
 
             is MapIntent.CacheCurrentRegion -> {
@@ -275,6 +338,161 @@ class DefaultMapComponent(
             is MapIntent.MoveToMyLocation -> {
                 emitEffect(MapEffect.ShowToast("Moving to your current location..."))
             }
+            // --- Cache region selection intent handling (stubs) ---
+            is MapIntent.EnableCacheMode -> {
+                val currentState = _state.value
+
+                // When enabling, initialize 4 MapMarkers for corners around map center
+                val center = intent.center
+                val offset = 0.01 // ~1km, adjust as needed
+                val corners = listOf(
+                    MapMarker(
+                        id = "cache_NW",
+                        latitude = center.latitude + offset,
+                        longitude = center.longitude - offset,
+                        title = "NW Corner",
+                        description = "North-West corner",
+                        type = MapMarkerType.CACHE_CORNER,
+                        iconResId = R.drawable.angle_frame_nw, // Use your drawable resource
+                    ),
+                    MapMarker(
+                        id = "cache_NE",
+                        latitude = center.latitude + offset,
+                        longitude = center.longitude + offset,
+                        title = "NE Corner",
+                        description = "North-East corner",
+                        type = MapMarkerType.CACHE_CORNER,
+                        iconResId = R.drawable.angle_frame_ne, // Use your drawable resource
+                    ),
+                    MapMarker(
+                        id = "cache_SE",
+                        latitude = center.latitude - offset,
+                        longitude = center.longitude + offset,
+                        title = "SE Corner",
+                        description = "South-East corner",
+                        type = MapMarkerType.CACHE_CORNER,
+                        iconResId = R.drawable.angle_frame_se, // Use your drawable resource
+                    ),
+                    MapMarker(
+                        id = "cache_SW",
+                        latitude = center.latitude - offset,
+                        longitude = center.longitude - offset,
+                        title = "SW Corner",
+                        description = "South-West corner",
+                        type = MapMarkerType.CACHE_CORNER,
+                        iconResId = R.drawable.angle_frame_sw, // Use your drawable resource
+                    ),
+                )
+
+                _state.update { state ->
+                    state.copy(
+                        isCacheModeEnabled = true,
+                        cacheRegionPoints = corners,
+
+                    )
+                }
+            }
+
+            is MapIntent.DisableCacheMode -> {
+                val currentState = _state.value
+                _state.update { state ->
+                    state.copy(
+                        isCacheModeEnabled = false,
+                        cacheRegionPoints = emptyList(),
+                    )
+                }
+            }
+
+            is MapIntent.SetCacheRegionPoints -> {
+                val currentState = _state.value
+                _state.update { state -> state.copy(cacheRegionPoints = intent.points) }
+            }
+
+            is MapIntent.ShowCacheUsage -> {
+                // TODO: Provide MapView instance here
+                val mapView: org.osmdroid.views.MapView =
+                    TODO("Provide MapView instance to component")
+                val sizeMB = mapView.getCacheUsageMB()
+                emitEffect(MapEffect.ShowCacheUsage(sizeMB))
+            }
+
+            is MapIntent.UpdateMarkerPosition -> {
+                val currentState = _state.value
+                val updatedMarker = intent.mapMarker.copy(
+                    latitude = intent.marker.position.latitude,
+                    longitude = intent.marker.position.longitude,
+                )
+                when (intent.mapMarker.type) {
+                    MapMarkerType.CACHE_CORNER -> {
+                        val updatedCacheMarkers = currentState.cacheRegionPoints.map {
+                            if (it.id == updatedMarker.id) updatedMarker else it
+                        }
+                        _state.update { state -> state.copy(cacheRegionPoints = updatedCacheMarkers) }
+                    }
+
+                    MapMarkerType.DEFAULT -> {
+                        val updatedUserMarkers = currentState.userMarkers.map {
+                            if (it.id == updatedMarker.id) updatedMarker else it
+                        }
+                        _state.update { state -> state.copy(userMarkers = updatedUserMarkers) }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun buildBoundingBoxFromMarkers(markers: List<MapMarker>): BoundingBox? {
+        if (markers.size != 4) return null
+        val north = markers.maxOfOrNull { it.latitude } ?: return null
+        val south = markers.minOfOrNull { it.latitude } ?: return null
+        val east = markers.maxOfOrNull { it.longitude } ?: return null
+        val west = markers.minOfOrNull { it.longitude } ?: return null
+        return BoundingBox(north, east, south, west)
+    }
+
+    override suspend fun startCacheRegion(
+        zoomMin: Int,
+        zoomMax: Int,
+        mapView: org.osmdroid.views.MapView,
+    ) {
+        mapView.tileProvider.tileSource.let { tileSource ->
+            if (tileSource !is OnlineTileSourceBase) {
+                emitEffect(MapEffect.CacheError("Tile source must be an online source for caching."))
+                return
+            }
+
+            if (!tileSource.tileSourcePolicy.acceptsBulkDownload()) {
+                emitEffect(MapEffect.CacheError("Tile source doesnt support bulk download."))
+                return
+            }
+        }
+
+        val currentState = _state.value
+        val boundingBox = buildBoundingBoxFromMarkers(currentState.cacheRegionPoints)
+        if (boundingBox != null) {
+            _state.update { state -> state.copy(isCachingInProgress = true) }
+            emitEffect(MapEffect.CacheStarted)
+            val result = mapView.downloadAndCacheRegionSuspend(boundingBox, zoomMin, zoomMax)
+            result.fold(
+                onSuccess = {
+                    _state.update {
+                        it.copy(
+                            isCachingInProgress = false,
+                        )
+                    }
+                    emitEffect(MapEffect.CacheCompleted)
+                },
+                onFailure = { e ->
+                    _state.update {
+                        it.copy(
+                            isCachingInProgress = false,
+                        )
+                    }
+                    emitEffect(MapEffect.CacheError(e.message ?: "Unknown error"))
+                },
+            )
+        } else {
+            emitEffect(MapEffect.CacheError("Please select 4 points to define the region."))
         }
     }
 }

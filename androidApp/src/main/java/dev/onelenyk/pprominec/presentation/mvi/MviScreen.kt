@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 fun <Intent : dev.onelenyk.pprominec.presentation.mvi.Intent, State : dev.onelenyk.pprominec.presentation.mvi.State, Effect : dev.onelenyk.pprominec.presentation.mvi.Effect> MviScreen(
     component: MviComponent<Intent, State, Effect>,
     onEffect: (Effect) -> Unit,
-    content: @Composable (state: State, dispatch: (Intent) -> Unit) -> Unit
+    content: @Composable (state: State, dispatch: (Intent) -> Unit) -> Unit,
 ) {
     val state by component.state.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -43,7 +43,7 @@ fun <Intent : dev.onelenyk.pprominec.presentation.mvi.Intent, State : dev.onelen
 @Composable
 fun <Intent : dev.onelenyk.pprominec.presentation.mvi.Intent, State : dev.onelenyk.pprominec.presentation.mvi.State, Effect : dev.onelenyk.pprominec.presentation.mvi.Effect> MviScreen(
     component: MviComponent<Intent, State, Effect>,
-    content: @Composable (state: State, dispatch: (Intent) -> Unit) -> Unit
+    content: @Composable (state: State, dispatch: (Intent) -> Unit) -> Unit,
 ) {
     val state by component.state.collectAsState()
     val coroutineScope = rememberCoroutineScope()
