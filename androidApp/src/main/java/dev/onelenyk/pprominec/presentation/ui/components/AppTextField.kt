@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,7 +37,8 @@ fun AppTextField(
     value: String,
     isRequired: Boolean = false,
     maxLines: Int = Int.MAX_VALUE,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(keyboardType = keyboardType),
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     label: String = "",
     placeholder: String = "",

@@ -205,7 +205,11 @@ fun UsersMarkersDialog(
         },
     ) { state, dispatch ->
         val mode = component.mode
-        var selectedMarker by remember { mutableStateOf<MapMarker?>(null) }
+        // Determine selected marker from parent state (if any)
+        val selectedMarkerId = when (mode) {
+            Mode.CHOOSE -> state.markers.find { it.id == state.currentLocation?.id }?.id ?: state.currentLocation?.id
+            else -> null
+        }
         AppDialog(onDismissRequest = { dispatch(UsersMarkersIntent.CloseScreen) }, content = {
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -224,8 +228,8 @@ fun UsersMarkersDialog(
                         modifier = Modifier.heightIn(max = 300.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(state.markers) { marker ->
-                            val isSelected = selectedMarker == marker
+                        items(state.uiMarkers) { marker ->
+                            val isSelected = selectedMarkerId == marker.id
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -239,7 +243,7 @@ fun UsersMarkersDialog(
                                         },
                                     )
                                     .clickable(enabled = mode == Mode.CHOOSE) {
-                                        selectedMarker = marker
+                                        dispatch(UsersMarkersIntent.SelectMarker(marker))
                                     }
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -251,7 +255,7 @@ fun UsersMarkersDialog(
                                 )
                                 Spacer(Modifier.width(12.dp))
                                 Column {
-                                    Text(marker.title, style = MaterialTheme.typography.bodyLarge)
+                                    Text("${marker.title} &${marker.code}", style = MaterialTheme.typography.bodyLarge)
                                     Text(
                                         text = "%.6f, %.6f".format(
                                             marker.latitude,
@@ -266,22 +270,18 @@ fun UsersMarkersDialog(
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        TextButton(onClick = { dispatch(UsersMarkersIntent.CloseScreen) }) {
-                            Text("Відмінити")
+                        if (mode == Mode.CHOOSE && selectedMarkerId != null) {
+                            TextButton(onClick = {
+                                dispatch(UsersMarkersIntent.SelectMarker(null))
+                            }) {
+                                Text("Зняти вибір")
+                            }
                         }
-                        Spacer(Modifier.width(8.dp))
-                        if (mode == Mode.CHOOSE) {
-                            Button(
-                                onClick = {
-                                    if (selectedMarker != null) {
-                                        dispatch(UsersMarkersIntent.SelectMarker(selectedMarker!!))
-                                    }
-                                },
-                                enabled = selectedMarker != null,
-                            ) {
-                                Text("Підтвердити")
+                        Row {
+                            TextButton(onClick = { dispatch(UsersMarkersIntent.CloseScreen) }) {
+                                Text("Відмінити")
                             }
                         }
                     }

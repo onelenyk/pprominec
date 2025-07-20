@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.kotlin.test)
+    implementation(libs.play.services.location)
 
     debugImplementation(libs.compose.ui.tooling)
 
@@ -121,6 +122,7 @@ dependencies {
     implementation("com.jakewharton.timber:timber:5.0.1")
 
     add("ktlint", "com.pinterest:ktlint:0.48.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 }
 
 tasks.withType<Test> {

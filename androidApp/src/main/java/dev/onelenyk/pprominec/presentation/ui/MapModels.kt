@@ -19,8 +19,39 @@ data class MapMarker(
     val description: String = "",
     val type: MapMarkerType = MapMarkerType.DEFAULT,
     val iconResId: Int? = null,
+    val code: Char = 'A',
 ) {
     fun geo() = GeoCoordinate(latitude, longitude)
+    fun icon() = GeoCoordinate(latitude, longitude)
+
+    companion object {
+        fun new(
+            latitude: Double,
+            longitude: Double,
+            lastIndex: Int = 0,
+            lastSymbol: Char?,
+            title: String = "Marker #${lastIndex + 1}",
+        ): MapMarker {
+            val newMarker = MapMarker(
+                id = "marker_${System.currentTimeMillis()}",
+                latitude = latitude,
+                longitude = longitude,
+                title = title,
+                description = "Added at map position",
+                code = MapMarker.nextAlphabetSymbol(lastSymbol),
+            )
+            return newMarker
+        }
+
+        fun nextAlphabetSymbol(lastSymbol: Char?): Char {
+            return when {
+                lastSymbol == null -> 'A'
+                lastSymbol in 'A'..'Y' -> lastSymbol + 1
+                lastSymbol == 'Z' -> 'A'
+                else -> throw IllegalArgumentException("Input must be A-Z or null")
+            }
+        }
+    }
 }
 
 // Enum for map modes

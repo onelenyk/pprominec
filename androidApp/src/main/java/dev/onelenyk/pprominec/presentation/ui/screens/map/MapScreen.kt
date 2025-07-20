@@ -204,8 +204,13 @@ class MapBuilder {
                     }
                 })
 
+                marker.code?.let {
+                    setTextIcon(it.toString())
+                    textLabelFontSize = 96
+                    textLabelBackgroundColor
+                }
                 marker.iconResId?.let {
-                    setIcon(context.getDrawable(it))
+                    icon = context.getDrawable(it)
                 }
 
                 setOnMarkerClickListener { _, _ ->

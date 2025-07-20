@@ -33,4 +33,4 @@ class UsersMarkersRepository {
         markers.clear()
         _markersFlow.value = emptyList()
     }
-} 
+}

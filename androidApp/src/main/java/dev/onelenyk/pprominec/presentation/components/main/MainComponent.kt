@@ -14,6 +14,7 @@ import dev.onelenyk.pprominec.presentation.mvi.Effect
 import dev.onelenyk.pprominec.presentation.mvi.Intent
 import dev.onelenyk.pprominec.presentation.mvi.MviComponent
 import dev.onelenyk.pprominec.presentation.mvi.State
+import dev.onelenyk.pprominec.presentation.ui.MapMarker
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
@@ -30,12 +31,33 @@ data class Sample(
     val expectedDistanceFromB: Double,
 )
 
+enum class InputSource { MANUAL, MARKER }
+
 data class InputData(
-    val pointA: GeoCoordinate? = null,
+    val pointALat: String = "",
+    val pointALon: String = "",
+    val pointBLat: String = "",
+    val pointBLon: String = "",
     val azimuthFromA: String = "",
     val distanceKm: String = "",
-    val pointB: GeoCoordinate? = null,
-)
+    val pointAInputSource: InputSource = InputSource.MANUAL,
+    val pointAMapMarker: MapMarker? = null,
+    val pointBInputSource: InputSource = InputSource.MANUAL,
+    val pointBMapMarker: MapMarker? = null,
+) {
+    val pointA: GeoCoordinate?
+        get() = pointALat.toDoubleOrNull()?.let { lat ->
+            pointALon.toDoubleOrNull()?.let { lon ->
+                GeoCoordinate(lat, lon)
+            }
+        }
+    val pointB: GeoCoordinate?
+        get() = pointBLat.toDoubleOrNull()?.let { lat ->
+            pointBLon.toDoubleOrNull()?.let { lon ->
+                GeoCoordinate(lat, lon)
+            }
+        }
+}
 
 data class OutputData(
     val targetPosition: GeoCoordinate? = null,
@@ -46,17 +68,22 @@ data class OutputData(
 data class MainState(
     val inputData: InputData = InputData(),
     val outputData: OutputData = OutputData(),
-    val isRenderModeA: Boolean = false,
     val isRenderModeB: Boolean = false,
     val isRenderModeC: Boolean = false,
 ) : State
 
 sealed class MainIntent : Intent {
-    data class OnPointAChange(val coordinate: GeoCoordinate?) : MainIntent()
+    data class OnPointALatChange(val lat: String) : MainIntent()
+    data class OnPointALonChange(val lon: String) : MainIntent()
     data class OnAzimuthFromAChange(val value: String) : MainIntent()
     data class OnDistanceKmChange(val value: String) : MainIntent()
-    data class OnPointBChange(val coordinate: GeoCoordinate?) : MainIntent()
-    data class SetRenderModeA(val enabled: Boolean) : MainIntent()
+    data class OnPointBChange(
+        val coordinate: GeoCoordinate?,
+        val source: InputSource = InputSource.MANUAL,
+    ) : MainIntent()
+
+    data class OnPointBLatChange(val lat: String) : MainIntent()
+    data class OnPointBLonChange(val lon: String) : MainIntent()
     data class SetRenderModeB(val enabled: Boolean) : MainIntent()
     data class SetRenderModeC(val enabled: Boolean) : MainIntent()
     data class LoadSample(val sample: Sample) : MainIntent()
@@ -113,21 +140,60 @@ class DefaultMainComponent(
                         onSelectMarker = { marker ->
                             when (config.requestLocationType) {
                                 LocationButtonType.POINT_A -> {
-                                    updateState(
-                                        _state.value.copy(
-                                            inputData = _state.value.inputData.copy(pointA = marker.geo()),
-                                        ),
-                                    )
+                                    if (marker == null) {
+                                        updateState(
+                                            _state.value.copy(
+                                                inputData = _state.value.inputData.copy(
+                                                    pointALat = "",
+                                                    pointALon = "",
+                                                    pointAInputSource = InputSource.MANUAL,
+                                                    pointAMapMarker = null,
+                                                ),
+                                            ),
+                                        )
+                                    } else {
+                                        updateState(
+                                            _state.value.copy(
+                                                inputData = _state.value.inputData.copy(
+                                                    pointALat = marker.latitude.toString(),
+                                                    pointALon = marker.longitude.toString(),
+                                                    pointAInputSource = InputSource.MARKER,
+                                                    pointAMapMarker = marker,
+                                                ),
+                                            ),
+                                        )
+                                    }
                                     updateCalculations()
+                                    dialogNavigation.dismiss()
+                                    return@DefaultUsersMarkersComponent
                                 }
 
                                 LocationButtonType.POINT_B -> {
-                                    updateState(
-                                        _state.value.copy(
-                                            inputData = _state.value.inputData.copy(pointB = marker.geo()),
-                                        ),
-                                    )
+                                    if (marker == null) {
+                                        updateState(
+                                            _state.value.copy(
+                                                inputData = _state.value.inputData.copy(
+                                                    pointBLat = "",
+                                                    pointBLon = "",
+                                                    pointBInputSource = InputSource.MANUAL,
+                                                    pointBMapMarker = null,
+                                                ),
+                                            ),
+                                        )
+                                    } else {
+                                        updateState(
+                                            _state.value.copy(
+                                                inputData = _state.value.inputData.copy(
+                                                    pointBLat = marker.latitude.toString(),
+                                                    pointBLon = marker.longitude.toString(),
+                                                    pointBInputSource = InputSource.MARKER,
+                                                    pointBMapMarker = marker,
+                                                ),
+                                            ),
+                                        )
+                                    }
                                     updateCalculations()
+                                    dialogNavigation.dismiss()
                                 }
 
                                 LocationButtonType.TARGET -> TODO()
@@ -140,8 +206,36 @@ class DefaultMainComponent(
 
     override suspend fun processIntent(intent: MainIntent) {
         when (intent) {
-            is MainIntent.OnPointAChange -> {
-                updateState(_state.value.copy(inputData = _state.value.inputData.copy(pointA = intent.coordinate)))
+            is MainIntent.OnPointALatChange -> {
+                val newLat = intent.lat
+                val marker = _state.value.inputData.pointAMapMarker
+                val shouldClearMarker = marker != null && newLat != marker.latitude.toString()
+                updateState(
+                    _state.value.copy(
+                        inputData = _state.value.inputData.copy(
+                            pointALat = newLat,
+                            pointAInputSource = if (shouldClearMarker) InputSource.MANUAL else _state.value.inputData.pointAInputSource,
+                            pointAMapMarker = if (shouldClearMarker) null else marker,
+                        ),
+                    ),
+                )
+                updateCalculations()
+            }
+
+            is MainIntent.OnPointALonChange -> {
+                val newLon = intent.lon
+                val marker = _state.value.inputData.pointAMapMarker
+                val shouldClearMarker = marker != null && newLon != marker.longitude.toString()
+                updateState(
+                    _state.value.copy(
+                        inputData = _state.value.inputData.copy(
+                            pointALon = newLon,
+                            pointAInputSource = if (shouldClearMarker) InputSource.MANUAL else _state.value.inputData.pointAInputSource,
+                            pointAMapMarker = if (shouldClearMarker) null else marker,
+                        ),
+                    ),
+                )
+
                 updateCalculations()
             }
 
@@ -156,12 +250,49 @@ class DefaultMainComponent(
             }
 
             is MainIntent.OnPointBChange -> {
-                updateState(_state.value.copy(inputData = _state.value.inputData.copy(pointB = intent.coordinate)))
+                updateState(
+                    _state.value.copy(
+                        inputData = _state.value.inputData.copy(
+                            pointBLat = intent.coordinate?.lat?.toString() ?: "",
+                            pointBLon = intent.coordinate?.lon?.toString() ?: "",
+                            pointBInputSource = intent.source,
+                            pointBMapMarker = if (intent.source == InputSource.MANUAL) null else _state.value.inputData.pointBMapMarker,
+                        ),
+                    ),
+                )
                 updateCalculations()
             }
 
-            is MainIntent.SetRenderModeA -> {
-                updateState(_state.value.copy(isRenderModeA = intent.enabled))
+            is MainIntent.OnPointBLatChange -> {
+                val newLat = intent.lat
+                val marker = _state.value.inputData.pointBMapMarker
+                val shouldClearMarker = marker != null && newLat != marker.latitude.toString()
+                updateState(
+                    _state.value.copy(
+                        inputData = _state.value.inputData.copy(
+                            pointBLat = newLat,
+                            pointBInputSource = if (shouldClearMarker) InputSource.MANUAL else _state.value.inputData.pointBInputSource,
+                            pointBMapMarker = if (shouldClearMarker) null else marker,
+                        ),
+                    ),
+                )
+                updateCalculations()
+            }
+
+            is MainIntent.OnPointBLonChange -> {
+                val newLon = intent.lon
+                val marker = _state.value.inputData.pointBMapMarker
+                val shouldClearMarker = marker != null && newLon != marker.longitude.toString()
+                updateState(
+                    _state.value.copy(
+                        inputData = _state.value.inputData.copy(
+                            pointBLon = newLon,
+                            pointBInputSource = if (shouldClearMarker) InputSource.MANUAL else _state.value.inputData.pointBInputSource,
+                            pointBMapMarker = if (shouldClearMarker) null else marker,
+                        ),
+                    ),
+                )
+                updateCalculations()
             }
 
             is MainIntent.SetRenderModeB -> {
@@ -176,10 +307,12 @@ class DefaultMainComponent(
                 updateState(
                     _state.value.copy(
                         inputData = InputData(
-                            pointA = intent.sample.pointA,
+                            pointALat = intent.sample.pointA.lat.toString(),
+                            pointALon = intent.sample.pointA.lon.toString(),
                             azimuthFromA = intent.sample.azimuthFromA.toString(),
                             distanceKm = intent.sample.distanceKm.toString(),
-                            pointB = intent.sample.pointB,
+                            pointBLat = intent.sample.pointB.lat.toString(),
+                            pointBLon = intent.sample.pointB.lon.toString(),
                         ),
                     ),
                 )
@@ -195,15 +328,11 @@ class DefaultMainComponent(
             }
 
             is MainIntent.OnLocationButtonClick -> {
-                // For now, just emit a toast effect for demonstration
-                val label = when (intent.type) {
-                    LocationButtonType.POINT_A -> "Location A"
-                    LocationButtonType.POINT_B -> "Location B"
-                    LocationButtonType.TARGET -> "Target"
+                if (intent.type == LocationButtonType.TARGET) {
+                    // TODO open map
+                } else {
+                    processIntent(MainIntent.ShowUserMarkerDialog(intent.type))
                 }
-
-                processIntent(MainIntent.ShowUserMarkerDialog(intent.type))
-                //  _effect.send(MainEffect.ShowToast("Location button clicked: $label"))
             }
         }
     }
@@ -211,15 +340,18 @@ class DefaultMainComponent(
     private fun updateCalculations() {
         val currentState = _state.value
         val input = currentState.inputData
-        if (input.pointA == null || input.azimuthFromA.isBlank() || input.distanceKm.isBlank()) {
-            updateState(currentState.copy(outputData = OutputData()))
-            return
-        }
+
         val pointA = input.pointA
+        val pointB = input.pointB
         val azimuth = AzimuthInputNormalizer.parseAzimuth(input.azimuthFromA)
         val distance = AzimuthInputNormalizer.parseDistance(input.distanceKm)
+
         if (pointA == null || azimuth == null || distance == null) {
-            updateState(currentState.copy(outputData = OutputData()))
+            updateState(
+                currentState.copy(
+                    outputData = OutputData(),
+                ),
+            )
             return
         }
         val targetPosition = try {
@@ -228,16 +360,15 @@ class DefaultMainComponent(
             null
         }
         if (targetPosition == null) {
-            updateState(currentState.copy(outputData = OutputData()))
             return
         }
         var azimuthFromB: Double?
         var distanceFromB: Double?
-        if (input.pointB == null) {
+
+        if (pointB == null) {
             azimuthFromB = null
             distanceFromB = null
         } else {
-            val pointB = input.pointB
             try {
                 azimuthFromB = AzimuthCalculatorAPI.calculateAzimuthFromB(pointB, targetPosition)
                 distanceFromB = AzimuthCalculatorAPI.calculateDistanceFromB(pointB, targetPosition)
@@ -246,6 +377,7 @@ class DefaultMainComponent(
                 distanceFromB = null
             }
         }
+
         updateState(
             currentState.copy(
                 outputData = OutputData(

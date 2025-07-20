@@ -147,26 +147,26 @@ class DefaultMapComponent(
     override val _state = MutableStateFlow(MapState())
     override val _effect = Channel<MapEffect>(Channel.BUFFERED)
 
-    private val fileManager: FileManager =
-        getKoin().get()
+    private val fileManager: FileManager = getKoin().get()
     private val mapSettingsRepository: MapSettingsRepository = getKoin().get()
     private val usersMarkersRepository: UsersMarkersRepository = getKoin().get()
 
     private val dialogNavigation = SlotNavigation<MapComponent.DialogConfig>()
-    override val dialog: Value<ChildSlot<MapComponent.DialogConfig, MapComponent.Dialog>> = childSlot(
-        source = dialogNavigation,
-        serializer = MapComponent.DialogConfig.serializer(),
-        handleBackButton = true,
-    ) { config, componentContext ->
-        when (config) {
-            is MapComponent.DialogConfig.UserMarker -> MapComponent.Dialog.UserMarkers(
-                DefaultUsersMarkersComponent(
-                    componentContext = componentContext,
-                    onClose = { dialogNavigation.dismiss() },
-                ),
-            )
+    override val dialog: Value<ChildSlot<MapComponent.DialogConfig, MapComponent.Dialog>> =
+        childSlot(
+            source = dialogNavigation,
+            serializer = MapComponent.DialogConfig.serializer(),
+            handleBackButton = true,
+        ) { config, componentContext ->
+            when (config) {
+                is MapComponent.DialogConfig.UserMarker -> MapComponent.Dialog.UserMarkers(
+                    DefaultUsersMarkersComponent(
+                        componentContext = componentContext,
+                        onClose = { dialogNavigation.dismiss() },
+                    ),
+                )
+            }
         }
-    }
 
     override fun showUserMarkerDialog() {
         dialogNavigation.activate(MapComponent.DialogConfig.UserMarker)
@@ -303,12 +303,11 @@ class DefaultMapComponent(
 
             is MapIntent.AddMarkerAtPosition -> {
                 val currentState = _state.value
-                val newMarker = MapMarker(
-                    id = "marker_${System.currentTimeMillis()}",
+                val newMarker = MapMarker.new(
                     latitude = intent.latitude,
                     longitude = intent.longitude,
-                    title = "Marker #${currentState.markers.lastIndex + 1}",
-                    description = "Added at map position",
+                    lastIndex = currentState.markers.lastIndex,
+                    lastSymbol = currentState.markers.lastOrNull()?.code,
                 )
                 usersMarkersRepository.addMarker(newMarker)
             }
