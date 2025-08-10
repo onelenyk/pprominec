@@ -24,4 +24,4 @@ class LocationManager(context: Context) {
             null
         }
     }
-} 
+}

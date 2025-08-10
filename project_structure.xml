@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project description="This project is a multi-platform application with shared code for Android and iOS. It includes modules for business logic, data handling, and user interface components, following modern architectural patterns like Model-View-Intent (MVI).">
+  <folder name="pprominec">
+    <folder name="androidApp" description="Android application module.">
+      <file name="build.gradle.kts" description="Gradle build script for the Android app module." />
+      <file name="release_keystore.jks" description="Keystore file for signing the Android app." />
+      <folder name="src" description="Source code for the Android app.">
+        <folder name="main" description="Main source set for the Android app. Contains essential application code and resources.">
+          <file name="AndroidManifest.xml" description="Defines app components, permissions, and metadata for the Android application." />
+          <file name="ic_launcher-playstore.png" description="High-resolution app icon used for the Play Store." />
+          <folder name="assets" description="Contains static files such as fonts, configuration files, and other resources used by the app." />
+          <folder name="java" description="Java source code for the app, including activity classes, services, and other logic.">
+            <folder name="dev" description="Development namespace.">
+              <folder name="onelenyk" description="Onelenyk namespace.">
+                <folder name="pprominec" description="Pprominec namespace.">
+                  <file name="AppModule.kt" description="Defines application-level modules and dependencies." />
+                  <file name="MyApplicationTheme.kt" description="Contains theme definitions for the application." />
+                  <file name="PprominecApp.kt" description="Main application class for initializing and managing the app lifecycle." />
+                  <folder name="bussines" description="Contains business logic and domain-specific classes.">
+                    <file name="AzimuthCalculatorAPI.kt" description="Handles azimuth calculations for geospatial data." />
+                    <file name="GeodesyUtils.kt" description="Provides geodesy-related utilities." />
+                  </folder>
+                  <folder name="data" description="Handles data-related operations such as models and repositories.">
+                    <file name="DataStoreManager.kt" description="Manages data storage operations." />
+                    <file name="MapSettingsRepository.kt" description="Handles map settings and related data operations." />
+                  </folder>
+                  <folder name="presentation" description="Manages UI-related components such as activities and fragments.">
+                    <file name="DecomposeUtils.kt" description="Provides utilities for UI decomposition." />
+                    <folder name="components" description="Organizes reusable UI components.">
+                      <file name="AppTextField.kt" description="Defines a custom text field component for the app." />
+                      <file name="AppToolbar.kt" description="Defines a custom toolbar component for the app." />
+                    </folder>
+                    <folder name="main" description="Main UI components.">
+                      <file name="MainActivity.kt" description="Main entry point for the app's UI." />
+                    </folder>
+                    <folder name="mvi" description="Model-View-Intent architecture components.">
+                      <file name="MviComponent.kt" description="Defines components for the MVI architecture." />
+                      <file name="MviScreen.kt" description="Defines screens for the MVI architecture." />
+                      <file name="SampleMviComponent.kt" description="Provides a sample implementation of an MVI component." />
+                    </folder>
+                    <folder name="ui" description="User interface elements.">
+                      <file name="AppScreen.kt" description="Defines the main app screen." />
+                      <file name="CustomNavigationBarItem.kt" description="Defines custom navigation bar items." />
+                      <file name="MapModels.kt" description="Defines models for map-related UI." />
+                      <folder name="components" description="Reusable UI components.">
+                        <file name="AppTextField.kt" description="Defines a custom text field component for the app." />
+                        <file name="AppToolbar.kt" description="Defines a custom toolbar component for the app." />
+                      </folder>
+                      <folder name="containers" description="UI containers.">
+                        <file name="BottomNavContainer.kt" description="Manages the bottom navigation container." />
+                        <file name="RootContainer.kt" description="Manages the root container for the app's UI." />
+                      </folder>
+                      <folder name="screens" description="Organizes screens for different app functionalities.">
+                        <folder name="main" description="Main screen.">
+                          <file name="MainScreen.kt" description="Primary UI for geospatial calculations, handles input, results, and dynamic dialogs." />
+                        </folder>
+                        <folder name="map" description="Map-related screens.">
+                          <file name="MapScreen.kt" description="Displays and manages map interactions, including markers and geospatial data visualization." />
+                        </folder>
+                        <folder name="mapsettings" description="Screens for map settings." />
+                        <folder name="permissions" description="Screens for handling permissions." />
+                        <folder name="sample" description="Sample screens." />
+                        <folder name="settings" description="Settings screens.">
+                          <file name="SettingsScreen.kt" description="Provides user preferences and application configuration options." />
+                        </folder>
+                      </folder>
+                      <folder name="theme" description="UI theme definitions.">
+                        <file name="Color.kt" description="Defines color schemes for the app." />
+                        <file name="Theme.kt" description="Defines the overall theme for the app." />
+                        <file name="Type.kt" description="Defines typefaces and font styles." />
+                        <file name="Typography.kt" description="Defines typography settings." />
+                        <folder name="color" description="Organizes color-related resources." />
+                      </folder>
+                    </folder>
+                  </folder>
+                </folder>
+              </folder>
+            </folder>
+          </folder>
+          <folder name="res" description="Resources such as XML layouts, drawable images, and string definitions used in the app." />
+        </folder>
+        <folder name="test" description="Test source set for unit tests.">
+          <folder name="java" description="Java test code for the app." />
+        </folder>
+      </folder>
+    </folder>
+    <folder name="gradle">
+      <file name="libs.versions.toml" description="Dependency versions configuration." />
+      <folder name="wrapper">
+        <file name="gradle-wrapper.jar" description="Gradle wrapper executable." />
+        <file name="gradle-wrapper.properties" description="Gradle wrapper settings." />
+      </folder>
+    </folder>
+    <folder name="shared">
+      <file name="build.gradle.kts" description="Shared module build configuration." />
+      <folder name="src">
+        <folder name="androidMain" description="Android-specific shared code.">
+          <folder name="kotlin" description="Kotlin source code for Android.">
+            <folder name="dev" description="Development namespace.">
+              <folder name="onelenyk" description="Onelenyk namespace.">
+                <folder name="pprominec" description="Pprominec namespace.">
+                  <file name="Platform.android.kt" description="Platform-specific implementation for Android. Contains Android-specific logic and utilities for the shared module." />
+                  <file name="Platform.ios.kt" description="Platform-specific implementation for iOS. Contains iOS-specific logic and utilities for the shared module." />
+                </folder>
+              </folder>
+            </folder>
+          </folder>
+        </folder>
+        <folder name="commonMain" description="Common shared code across platforms." />
+        <folder name="iosMain" description="iOS-specific shared code." />
+      </folder>
+    </folder>
+  </folder>
+</project>

@@ -494,18 +494,11 @@ fun PointACoordinatesCard(
                     Spacer(
                         modifier = Modifier.width(8.dp),
                     )
-                    if (pointAMapMarker != null) {
-                        LocationButton(
-                            onClick = onLocationClick,
-                            mapMarker = pointAMapMarker,
-                            modifier = Modifier,
-                        )
-                    } else {
-                        LocationButton(
-                            onClick = onLocationClick,
-                            modifier = Modifier,
-                        )
-                    }
+                    LocationButton(
+                        onClick = onLocationClick,
+                        mapMarker = pointAMapMarker,
+                        modifier = Modifier,
+                    )
                 }
             }
         }
@@ -802,18 +795,11 @@ fun ObservationPointCard(
                         Spacer(
                             modifier = Modifier.width(8.dp),
                         )
-                        if (pointBMapMarker != null && inputSource == InputSource.MARKER) {
-                            LocationButton(
-                                onClick = onLocationClick,
-                                mapMarker = pointBMapMarker,
-                                modifier = Modifier,
-                            )
-                        } else {
-                            LocationButton(
-                                onClick = onLocationClick,
-                                modifier = Modifier,
-                            )
-                        }
+                        LocationButton(
+                            onClick = onLocationClick,
+                            mapMarker = if (inputSource == InputSource.MARKER) pointBMapMarker else null,
+                            modifier = Modifier,
+                        )
                     }
                 }
             }
@@ -887,42 +873,10 @@ fun ObservationPointCard(
 @Composable
 fun LocationButton(
     modifier: Modifier = Modifier,
+    mapMarker: MapMarker? = null,
     borderColor: Color = MaterialTheme.colorScheme.onPrimary,
     backgroundColor: Color = MaterialTheme.colorScheme.primaryContainer,
     iconColor: Color = MaterialTheme.colorScheme.onPrimary,
-    shape: RoundedCornerShape = RoundedCornerShape(12.dp),
-    onClick: () -> Unit,
-) {
-    Box(
-
-        modifier = modifier
-            //  .size(48.dp)
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = shape,
-            )
-            .background(backgroundColor, shape)
-            .clip(shape)
-            .clickable(onClick = onClick)
-            .padding(8.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.LocationOn,
-            contentDescription = "Відкрити карту з локацією",
-            tint = iconColor,
-            modifier = Modifier.size(24.dp),
-        )
-    }
-}
-
-@Composable
-fun LocationButton(
-    modifier: Modifier = Modifier,
-    mapMarker: MapMarker,
-    borderColor: Color = MaterialTheme.colorScheme.onPrimary,
-    backgroundColor: Color = MaterialTheme.colorScheme.primaryContainer,
     textColor: Color = MaterialTheme.colorScheme.onPrimary,
     shape: RoundedCornerShape = RoundedCornerShape(12.dp),
     onClick: () -> Unit,
@@ -940,12 +894,21 @@ fun LocationButton(
             .padding(8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = mapMarker.code.toString(),
-            modifier = Modifier.size(24.dp),
-            style = MaterialTheme.typography.bodyLarge,
-            color = textColor,
-            textAlign = TextAlign.Center,
-        )
+        if (mapMarker != null) {
+            Text(
+                text = mapMarker.code.toString(),
+                modifier = Modifier.size(24.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                color = textColor,
+                textAlign = TextAlign.Center,
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Filled.LocationOn,
+                contentDescription = "Відкрити карту з локацією",
+                tint = iconColor,
+                modifier = Modifier.size(24.dp),
+            )
+        }
     }
 }
